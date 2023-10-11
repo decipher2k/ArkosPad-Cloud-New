@@ -1,0 +1,44 @@
+﻿<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Material Design Bootstrap</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+    <!-- Bootstrap core CSS -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Material Design Bootstrap -->
+    <link href="assets/css/mdb.min.css" rel="stylesheet">
+    <!-- Your custom styles (optional) -->
+    <link href="assets/css/style.min.css" rel="stylesheet">
+    <script src="./assets/tree.jquery.js"></script>
+    <style>
+
+      .map-container{
+  overflow:hidden;
+  padding-bottom:56.25%;
+  position:relative;
+  height:0;
+  }
+  .map-container iframe{
+  left:0;
+  top:0;
+  height:100%;
+  width:100%;
+  position:absolute;
+  }
+    </style>
+  </head>
+<body>
+
+        <input id="callback" type="text" (htmlChange)="this.html= $event" />
+
+        <div style="left:0px;top:0px;" class="sidebar-fixed position-fixed">
+          <div style="height:30px;"></div>
+          <div style="height:75px; text-align:center;"><a href="/"><img style="width:185px;" src="assets/wikidox.png" /></a></div>
+          <div  id="tree1" data-url="https://xn--gnrgy-jua.co/api/markdownpage/GetNodes"></div>
+          <div  [innerHTML]="html">{{html}}</div>
+        </div>
+
+          <!-- Sidebar -->
+</body>

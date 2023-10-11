@@ -1,0 +1,18 @@
+<html>
+    <head></head>
+<body>
+    
+    <ckeditor
+    [(ngModel)]="ckeditorContent"
+    [config]="{uiColor: '#C0C0C0'}"
+    [readonly]="false"
+    (change)="onChange($event)"
+    (editorChange)="onEditorChange($event)"
+    debounce="500">
+  </ckeditor><button (click)="onClick($event)">Save</button>
+  <br>
+  <hr>
+
+  <a href="/view/{{ url }}"><font color="black">View</font></a>
+</body>
+</html>

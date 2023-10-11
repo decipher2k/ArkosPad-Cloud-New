@@ -1,0 +1,51 @@
+<div style=" display: table;  margin-right: auto;  margin-left: auto;">
+<div *ngIf="showError">
+<div class="alert alert-danger" role="alert">
+  Error!
+</div>
+</div>
+
+<div style="border-width:1px;border-style:solid;padding:15px;">
+{{click}}
+<h3>User List</h3>
+<table>
+<tr *ngFor="let u of users.users">
+    <td>{{ u.username }}</td>
+    <td><a style="text-decoration:underline;cursor:pointer;" (click)="clickDelete(u.username)" ><font size="3">Delete</font></a> | <a style="text-decoration:underline;cursor:pointer;" (click)="clickEdit(u.username)" ><font size="3">Edit</font></a>
+    </td>
+</tr>
+</table>
+
+<br>
+</div>
+<div *ngIf="showEdit"  style="border-width:1px;border-style:solid;border-top:none;padding:15px;">
+<h5>Edit User</h5>
+<form name="frm1">
+  <div class="form-group">
+    <label for="exampleInputPassword1">Password for user {{newPasswordUsername}}</label>
+    <input type="password" class="form-control" id="exampleInputPassword2" placeholder="Password" name="newpass" [(ngModel)]="newPassword"><br>
+<input [(ngModel)]="canEdit" type="checkbox" name="canedit"/>Edit<br>
+<input [(ngModel)]="canCreate" type="checkbox" name="cancreate"/>Create<br>
+<input [(ngModel)]="canUpload" type="checkbox" name="canupload"/>Upload<br>
+<input [(ngModel)]="isAdmin" type="checkbox" name="isadmin"/>Admin
+  </div>
+  <button type="submit" class="btn btn-primary" (click)="onEditPassword(newPasswordUsername)">Submit</button>
+</form>
+
+</div>
+<div style="border-width:1px;border-style:solid;border-top:none;padding:15px;">
+<h3>Add User</h3>
+<form name="frm">
+  <div class="form-group">
+    <label for="exampleInputEmail1">Email address</label>
+    <input  [(ngModel)]="name" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email" name="mail">
+  </div>
+  <div class="form-group">
+    <label for="exampleInputPassword1">Password</label>
+    <input type="password" class="form-control" id="exampleInputPassword1" placeholder="Password" name="pass" [(ngModel)]="password">
+  </div>
+  <button type="submit" class="btn btn-primary" (click)="onClickNewUser()">Submit</button>
+</form>
+
+</div>
+</div>

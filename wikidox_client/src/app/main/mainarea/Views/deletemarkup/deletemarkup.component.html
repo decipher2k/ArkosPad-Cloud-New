@@ -1,0 +1,17 @@
+
+
+
+<div *ngIf="delete && !error">
+Item {{url}} successfully deleted.<br>
+    <a href="/">Home</a>
+</div>
+
+<div *ngIf="!delete && !error">
+Caution! Do you really want to delete {{url}}?<br>
+  <a href="/delete/{{url}}/delete">Yes</a> - <a href="/{{url}}">No</a>
+</div>
+
+<div *ngIf="delete && error">
+Error: The Node {{url}} has got children.<br>
+  <a href="/{{url}}">Back</a>
+</div>

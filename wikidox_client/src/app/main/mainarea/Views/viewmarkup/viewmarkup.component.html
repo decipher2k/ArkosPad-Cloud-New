@@ -1,0 +1,14 @@
+<html>
+<head>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.6.0/themes/prism.min.css" rel="stylesheet" />
+</head>
+<body>
+<div style="width: 100%; height: 600px;">
+    <div style="width: 80%; height:100%;float: left;border-style:solid;border-right:none;border-width:1px;padding:15px;">  <ngx-md [data]="content"></ngx-md> </div>
+    <div style="height:100%;border-style:solid;padding:15px;padding-left:15px;border-width:1px;text-align:center;overflow:hidden;"><h4 style="text-decoration:underline;">Attached Files</h4><br /><app-fileview [url]="url"></app-fileview></div>
+  </div>
+
+<br>
+
+  <hr>
+  <a href="/edit/{{ url }}/edit"><font color="black">Edit/New</font></a> | <a href="/delete/{{ url }}/askdelete"><font color="black">Delete</font></a>

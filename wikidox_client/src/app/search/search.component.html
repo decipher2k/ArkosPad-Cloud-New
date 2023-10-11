@@ -1,0 +1,33 @@
+
+<div style=" display: table;  margin-right: auto;  margin-left: auto;">
+
+<div style="width:100%;">
+<form name="frm1">
+  <div class="form-group">
+<h4>Search</h4><br>
+    <input type="text" class="form-control" id="exampleInputPassword2" placeholder="Search" name="searchfield" [(ngModel)]="search"> <input [(ngModel)]="searchPages" type="checkbox" name="pages"/>Search Pages | <input [(ngModel)]="searchFiles" type="checkbox" name="files"/>Search Files
+  </div>
+  <button type="submit" class="btn btn-primary" (click)="onSearch()">Submit</button>
+</form>
+</div>
+
+</div>
+<div style="width:100%;background-color:white;">
+<div style="width:100%;margin-left:100px;margin-right:100px;background-color:white;padding-top:50px;">
+Pages:<br>
+
+<table>
+<tr *ngFor="let p of searchResult.pages">
+    <td><a style="text-decoration:underline;cursor:pointer;" href="/{{p.url}}">{{p.url}}</a></td><br>
+</tr>
+</table>
+<br><br>
+Files:<br>
+<table>
+<tr *ngFor="let f of searchResult.files">
+    <td><a style="text-decoration:underline;cursor:pointer;" (click)="downloadFile(f.id,f.filename)">{{f.filename}}</a></td>
+</tr>
+</table>
+
+</div>
+</div>

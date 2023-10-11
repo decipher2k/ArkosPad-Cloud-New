@@ -1,0 +1,50 @@
+<style>
+.inputfile {
+}
+</style>
+<div>
+<div style="padding-left:15px;height:450px;overflow:hidden;width:100%;overflow: auto;">
+<!--
+<ul>
+  <li *ngFor="let fls of files">
+    <a class="link-unstyled" href="https://xn--gnrgy-jua.co/api/files/Download?id={{fls.file.id}}&session={{session}}"><font size="3">{{ fls.file.fileName }}</font></a>
+  </li>
+</ul>
+<br>
+-->
+
+<table style="margin-left:-20px;margin-right:-20px;width:100%;border-right:none;">
+<tr  *ngFor="let f of files" style="border-style:solid;border-width:1px;border-left:none;border-right:none;">
+    <td><a style="text-decoration:underline;cursor:pointer;" (click)="downloadFile(f.file.id,f.file.fileName)">{{f.file.fileName}}</a></td>
+</tr>
+</table>
+
+
+</div>
+<div *ngIf="uploading"  style="border-top:solid;border-width:1px;margin-left:-15px;margin-right:-15px;margin-bottom:-15px;padding-left:15px;padding-right:15px;">
+  Uploading...
+</div>
+
+
+<!-- <div [innerHTML]="url1 | safe: 'html'" style="vertical-align:top;top:70%;height:20%;overflow:hidden;bottom:0;padding-left:15px;"> -->
+<div *ngIf="!uploading" style="border-top:solid;border-width:1px;margin-left:-15px;margin-right:-15px;margin-bottom:-15px;padding-left:15px;padding-right:15px;">
+Upload:<br>
+<div class="input-group">
+  <div class="input-group-prepend">
+<!--    <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>-->
+  </div>
+  <div class="custom-file">
+    <input type="file" class="custom-file-input" id="inputGroupFile01"
+      aria-describedby="inputGroupFileAddon01">
+    <label class="custom-file-label" for="inputGroupFile01"></label>
+  </div>
+</div>
+</div>
+<!--
+<div class="form-group">
+  <span>Choose file</span>
+  <input type="file" class="file">
+</div>
+-->
+
+</div>

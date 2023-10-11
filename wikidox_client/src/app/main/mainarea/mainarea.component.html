@@ -1,0 +1,88 @@
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Material Design Bootstrap</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+    <!-- Bootstrap core CSS -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Material Design Bootstrap -->
+    <link href="assets/css/mdb.min.css" rel="stylesheet">
+    <!-- Your custom styles (optional) -->
+    <link href="assets/css/style.min.css" rel="stylesheet">
+    <style>
+  
+      .map-container{
+  overflow:hidden;
+  padding-bottom:56.25%;
+  position:relative;
+  height:0;
+  }
+  .map-container iframe{
+  left:0;
+  top:0;
+  height:100%;
+  width:100%;
+  position:absolute;
+  }
+    </style>
+  </head>
+<body>
+<!--Main layout-->
+<main class="pt-5 mx-lg-5" style="margin-top:-100px;top:-100px;">
+
+
+    
+
+
+    <div class="container-fluid mt-5" style="top:-100px;margin-top:-100px;">
+    <app-treeheader [url]="url"></app-treeheader>     
+ 
+      <!--Grid row-->
+      <div class="row wow fadeIn">
+
+        <!--Grid column-->
+        <div class="col">
+
+          <!--Card-->
+          <div class="card">
+
+            <!--Card content-->
+            <div class="card-body">
+                    <div *ngIf="doNotEdit; else doedit">
+                            <app-viewmarkup [url]="url"></app-viewmarkup>
+                    </div>
+                          
+                    <ng-template #doedit>
+                            <app-editmarkup [url]="url"></app-editmarkup>
+                    </ng-template>                                        
+            </div>
+
+          </div>
+          <!--/.Card-->
+
+        </div>
+        <!--Grid column-->
+</div>
+</div>
+
+     
+
+        
+
+  
+          
+          <!--/.Card-->
+
+        
+        <!--Grid column-->
+
+      <!--Grid row-->
+
+      <!--Grid row-->
+      <!--Grid row-->
+</main>
+</body>
+
+

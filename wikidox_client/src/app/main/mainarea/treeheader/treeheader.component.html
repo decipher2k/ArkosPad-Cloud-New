@@ -1,0 +1,51 @@
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Material Design Bootstrap</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+    <!-- Bootstrap core CSS -->
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Material Design Bootstrap -->
+    <link href="assets/css/mdb.min.css" rel="stylesheet">
+    <!-- Your custom styles (optional) -->
+    <link href="assets/css/style.min.css" rel="stylesheet">
+    <style>
+
+      .map-container{
+  overflow:hidden;
+  padding-bottom:56.25%;
+  position:relative;
+  height:0;
+  }
+  .map-container iframe{
+  left:0;
+  top:0;
+  height:100%;
+  width:100%;
+  position:absolute;
+  }
+    </style>
+  </head>
+<body>
+<!-- Heading -->
+<div class="card mb-4 wow fadeIn">
+    <!--Card content-->
+    <div class="card-body d-sm-flex justify-content-between">
+      <form class="d-flex justify-content-left">
+        <!-- Default input -->
+        <input id="srch" type="search" onkeypress="if(event.keyCode==13)document.location.href='/'+getElementById('srch').value;" placeholder="Category1:Category2:Page" aria-label="Search" class="form-control" style="width:400px;">
+        <button class="btn btn-primary btn-sm my-0 p" type="button" onclick="document.location.href=getElementById('srch').value;">
+          <i class="fas fa-arrow-right"></i>
+        </button>
+ <a href="search">Search</a>
+
+
+      </form>
+<div class="d-flex justify-content-right">
+<a href="admin">Admin</a> | <a href="Logout">Logout</a>
+    </div>
+
+  </div>
+  <!-- Heading -->
