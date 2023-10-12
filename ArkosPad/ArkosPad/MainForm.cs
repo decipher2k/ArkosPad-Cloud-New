@@ -180,7 +180,7 @@ namespace RicherTextBoxDemo
         private void resetSyncThread()
         {
             System.Threading.Thread.Sleep(3000);
-            label5.Invoke(new Action(() => {try { label5.ForeColor = Color.White; } catch { } }));
+            label5.Invoke(new Action(() => {try {if (label5.IsHandleCreated) label5.ForeColor = Color.White; } catch { } }));
         }
     
 
@@ -319,31 +319,34 @@ namespace RicherTextBoxDemo
             if(n!=null && n.Tag!=null)
             {
                 String tag = ((XmlNodeData)n.Tag).ID;
-                TreeItem i = data[tag];
-                if (richerTextBox1.Text.Trim().Length > 0)
+                if (n.Tag!=null && tag != "1")
                 {
-                    if (i.data != richerTextBox1.Rtf)
+                    TreeItem i = data[tag];
+                    if (richerTextBox1.Text.Trim().Length > 0)
                     {
-                        i.data = richerTextBox1.Rtf;
-                        Sync.UpdateOrAddNode(data[((XmlNodeData)n.Tag).ID].data, data[((XmlNodeData)n.Tag).ID].weight, n);
+                        if (i.data != richerTextBox1.Rtf)
+                        {
+                            i.data = richerTextBox1.Rtf;
+                            Sync.UpdateOrAddNode(data[((XmlNodeData)n.Tag).ID].data, data[((XmlNodeData)n.Tag).ID].weight, n);
+                        }
+                    }
+                    else
+                    {
+                        if (i.data != "")
+                        {
+                            i.data = "";
+                            Sync.UpdateOrAddNode(data[((XmlNodeData)n.Tag).ID].data, data[((XmlNodeData)n.Tag).ID].weight, n);
+                        }
+                    }
+
+                    i.data = richerTextBox1.Rtf;
+                    data[tag] = i;
+
+                    if (_filename != "")
+                    {
+                        exportToXml(_filename);
                     }
                 }
-                else
-                {
-                    if (i.data != "")
-                    {
-                        i.data = "";
-                        Sync.UpdateOrAddNode(data[((XmlNodeData)n.Tag).ID].data, data[((XmlNodeData)n.Tag).ID].weight, n);
-                    }
-                }
-
-                i.data = richerTextBox1.Rtf;
-                data[tag] = i;
-
-                if(_filename!="")
-                {
-                    exportToXml(_filename);
-                }               
             }
         }
 
@@ -680,8 +683,13 @@ namespace RicherTextBoxDemo
             {
                 if (isCloud)
                 {
-
-                    Sync.DeleteNode(treeView1.SelectedNode);
+                    try
+                    {
+                        Sync.DeleteNode(treeView1.SelectedNode);
+                    }catch(Exception ex)
+                    {
+                        MessageBox.Show(this, "Please remove all subnodes first!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
                 else
                     removeNode(treeView1.SelectedNode);

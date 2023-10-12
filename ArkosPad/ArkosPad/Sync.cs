@@ -201,9 +201,11 @@ namespace RicherTextBoxDemo
             while(node.Parent!=null)
             {
                 node = node.Parent;
-                if(node.Tag!=null)
+                if(node.Tag!=null && ((XmlNodeData)node.Tag).ID!="1")
                     ret = node.Text + ":" + ret;
             }
+            if (ret == "Root")
+                throw new Exception();
             return ret;
         }
 

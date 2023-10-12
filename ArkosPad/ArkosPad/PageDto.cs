@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace RicherTextBoxDemo
 {
+    [Serializable]
     public class PageDto
     {
         public string session { get; set; } = "";
