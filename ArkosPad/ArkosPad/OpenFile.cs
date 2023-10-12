@@ -106,5 +106,13 @@ namespace RicherTextBoxDemo
 
 
         }
+
+        private void textBox4_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if(e.KeyChar==13)
+            {
+                button3_Click(null, null);
+            }
+        }
     }
 }

@@ -254,36 +254,47 @@ namespace RicherTextBoxDemo
             {
                 notSaved = true;
                 String name = n.mName;
-                int weight = int.Parse(n.Weight);
-                TreeItem ti = new TreeItem();
-                ti.name = name;
-                ti.weight = maxWeight + 1;
-                maxWeight++;
-                ti.data = "";
-                int id = getNextID();
-                data.Add(id.ToString(), ti);
-                TreeNode sel = treeView1.SelectedNode;
-                TreeNode newNode= new TreeNode();
-                newNode.Name = name+id.ToString();
-                newNode.Text = name;
-                newNode.Tag = new XmlNodeData() { ID = id.ToString(), focus = false, weight = ti.weight };
-                
+                bool found = false;
 
-                if (sel != null)
+                foreach(TreeNode n1 in treeView1.SelectedNode.Nodes)
                 {
-                    sel.Nodes.Add(newNode);
-                    sel.Expand();
-                }
-                else
-                {
-                    treeView1.Nodes.Add(newNode);
-                    treeView1.ExpandAll();
+                    if (n1.Text == name)
+                        found = true;
                 }
 
-                if (isCloud)
+                if (!found)
                 {
-                    Sync.UpdateOrAddNode(" ", ti.weight, newNode);
-                    treeView1.Nodes.Remove(newNode);
+                    int weight = int.Parse(n.Weight);
+                    TreeItem ti = new TreeItem();
+                    ti.name = name;
+                    ti.weight = maxWeight + 1;
+                    maxWeight++;
+                    ti.data = "";
+                    int id = getNextID();
+                    data.Add(id.ToString(), ti);
+                    TreeNode sel = treeView1.SelectedNode;
+                    TreeNode newNode = new TreeNode();
+                    newNode.Name = name + id.ToString();
+                    newNode.Text = name;
+                    newNode.Tag = new XmlNodeData() { ID = id.ToString(), focus = false, weight = ti.weight };
+
+
+                    if (sel != null)
+                    {
+                        sel.Nodes.Add(newNode);
+                        sel.Expand();
+                    }
+                    else
+                    {
+                        treeView1.Nodes.Add(newNode);
+                        treeView1.ExpandAll();
+                    }
+
+                    if (isCloud)
+                    {
+                        Sync.UpdateOrAddNode(" ", ti.weight, newNode);
+                        treeView1.Nodes.Remove(newNode);
+                    }
                 }
             }
 
