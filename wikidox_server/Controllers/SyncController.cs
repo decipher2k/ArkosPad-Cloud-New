@@ -66,6 +66,21 @@ namespace WikiDoxServer.Controllers
         }
 
 
+        [HttpGet("{session}")]
+        [Route("Clear")]
+        public bool Clear([FromQuery] String session)
+        {
+            Globals.getAuth(session);
+         
+            _context.RemoveRange(_context.NodeCapsule);
+            _context.RemoveRange(_context.Node.Where(a=>a.id!=1));
+            _context.RemoveRange(_context.MarkdownPages);
+            _context.SaveChanges();
+
+            return true;
+        }
+
+
         int weight;
         private SyncDTO iterateChildren(Node subnode, SyncDTO SyncDTO, ref int count, bool isroot)
         {

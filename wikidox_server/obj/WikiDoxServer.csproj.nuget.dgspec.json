@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Shadow\\Desktop\\WikiDox\\wikidox_server\\WikiDoxServer.csproj": {}
+    "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\WikiDoxServer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Shadow\\Desktop\\WikiDox\\wikidox_server\\WikiDoxServer.csproj": {
+    "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\WikiDoxServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Shadow\\Desktop\\WikiDox\\wikidox_server\\WikiDoxServer.csproj",
+        "projectUniqueName": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\WikiDoxServer.csproj",
         "projectName": "WikiDoxServer",
-        "projectPath": "C:\\Users\\Shadow\\Desktop\\WikiDox\\wikidox_server\\WikiDoxServer.csproj",
+        "projectPath": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\WikiDoxServer.csproj",
         "packagesPath": "C:\\Users\\Shadow\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Shadow\\Desktop\\WikiDox\\wikidox_server\\obj\\",
+        "outputPath": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Shadow\\AppData\\Roaming\\NuGet\\NuGet.Config",

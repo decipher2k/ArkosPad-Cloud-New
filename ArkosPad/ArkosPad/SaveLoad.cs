@@ -58,8 +58,11 @@ namespace RicherTextBoxDemo
         {
             foreach (TreeNode node in tnc)
             {
+                if (MainForm.isCloud)
+                    Sync.UpdateOrAddNode(MainForm.data[((XmlNodeData)node.Tag).ID].data, MainForm.data[((XmlNodeData)node.Tag).ID].weight, node);
 
-                if(resetFocus)
+
+                if (resetFocus)
                 {
                     MainForm.data[((XmlNodeData)node.Tag).ID].focus = false;
                     node.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
@@ -74,14 +77,21 @@ namespace RicherTextBoxDemo
                 //the children
                 if (node.Nodes.Count > 0)
                 {
-                    sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\""+node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (MainForm.data[((XmlNodeData)node.Tag).ID].focus?"1":"0") +"\">");
+                    if(!MainForm.isCloud)
+                        sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\""+node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (MainForm.data[((XmlNodeData)node.Tag).ID].focus?"1":"0") +"\">");
+
                     saveNode(node.Nodes, sr,resetFocus);
-                    sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
+
+                    if (!MainForm.isCloud)
+                        sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
                 }
                 else //No child nodes, so we just write the text
                 {
-                    sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\"" + node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (MainForm.data[((XmlNodeData)node.Tag).ID].focus?"1":"0") +"\">");
-                    sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
+                    if (!MainForm.isCloud)
+                    {
+                        sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\"" + node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (MainForm.data[((XmlNodeData)node.Tag).ID].focus ? "1" : "0") + "\">");
+                        sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
+                    }
                 }
 
                 

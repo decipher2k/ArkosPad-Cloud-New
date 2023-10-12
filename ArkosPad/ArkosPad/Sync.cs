@@ -64,6 +64,12 @@ namespace RicherTextBoxDemo
             HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(pageDto), "/api/MarkdownPage/DeletePage");
         }
 
+        public static void Clear()
+        {
+            if(MainForm.isCloud)
+                Get(MainForm.cloudURL + "/api/Sync/Clear?session=" + MainForm.cloudSession);
+        }
+
         public static String getUrlFromTreeNode(TreeNode node)
         {
             String ret = node.Text;

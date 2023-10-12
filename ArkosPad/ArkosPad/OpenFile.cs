@@ -14,8 +14,10 @@ namespace RicherTextBoxDemo
 {
     public partial class OpenFile : Form
     {
-        public OpenFile()
+        private bool cloudOnly = false;
+        public OpenFile(bool cloudOnly=false)
         {
+            this.cloudOnly = cloudOnly;
             InitializeComponent();
         }
 
@@ -28,7 +30,8 @@ namespace RicherTextBoxDemo
 
         private void OpenFile_Load(object sender, EventArgs e)
         {
-
+            if (cloudOnly)
+                groupBox1.Enabled = false;
         }
 
         private void button1_Click(object sender, EventArgs e)

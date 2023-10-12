@@ -9,6 +9,7 @@ using System.Media;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Remoting.Messaging;
 using System.Windows.Forms;
 using System.Xml;
@@ -1330,6 +1331,42 @@ namespace RicherTextBoxDemo
         private void pictureBox1_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void uploadToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show(this, "Warning! This will delete all content saved in the cloud!\nContinue?", "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.Yes)
+            {
+                if (!isCloud)
+                {
+                    OpenFileDialog dlg = new OpenFileDialog();
+
+                    OpenFile f = new OpenFile(true);
+                    if (f.ShowDialog() == DialogResult.OK)
+                    {
+
+                        isCloud = f.isCloud;
+
+                        if (f.isCloud)
+                        {
+                            cloudSession = f.session;
+                            cloudURL = f.url;
+                        }
+                    }
+
+                    if (isCloud)
+                    {
+                        Sync.Clear();
+                        foreach (TreeNode node in treeView1.Nodes)
+                        {
+                            StreamWriter sr = new StreamWriter(".\\tmp", false, System.Text.Encoding.UTF8);
+                            SaveLoad.saveNode(node.Nodes, sr, false);
+                        }
+                        mainThread = new System.Threading.Thread(syncThread);
+                        mainThread.Start();
+                    }
+                }
+            }
         }
     }
 }
