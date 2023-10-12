@@ -21,14 +21,17 @@ namespace RicherTextBoxDemo
                 }
                 else
                 {
-                    List<FileDto.fileCapsule> files = Sync.GetFiles(int.Parse(((XmlNodeData)n.Tag).ID));
-                    foreach( FileDto.fileCapsule file in files )
+                    if (n.Tag != null)
                     {
-                        ListViewItem item = new ListViewItem();
-                        item.Text = file.file.fileName;
-                        item.Tag = file.file.id;
-                        mainForm.addLbFile(item);
-                    }
+                        List<FileDto.fileCapsule> files = Sync.GetFiles(int.Parse(((XmlNodeData)n.Tag).ID));
+                        foreach (FileDto.fileCapsule file in files)
+                        {
+                            ListViewItem item = new ListViewItem();
+                            item.Text = file.file.fileName;
+                            item.Tag = file.file.id;
+                            mainForm.addLbFile(item);
+                        }
+                    }   
                 }
 
                 if (n.Tag != null)

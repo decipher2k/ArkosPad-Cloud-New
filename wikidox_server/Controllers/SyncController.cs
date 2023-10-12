@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using WikiDoxServer.Dto;
 using WikiDoxServer.Models;
@@ -71,7 +72,11 @@ namespace WikiDoxServer.Controllers
         public bool Clear([FromQuery] String session)
         {
             Globals.getAuth(session);
-         
+
+            foreach (String f in Directory.EnumerateFiles(".\\files"))
+                System.IO.File.Delete(f);
+
+            _context.RemoveRange(_context.Files);
             _context.RemoveRange(_context.NodeCapsule);
             _context.RemoveRange(_context.Node.Where(a=>a.id!=1));
             _context.RemoveRange(_context.MarkdownPages);

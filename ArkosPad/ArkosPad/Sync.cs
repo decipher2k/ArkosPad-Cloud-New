@@ -128,6 +128,14 @@ namespace RicherTextBoxDemo
             return Newtonsoft.Json.JsonConvert.DeserializeObject<List<FileDto.fileCapsule>>(content);
         }
 
+
+        public static void DeleteFile(int idFile)
+        {
+            IdDto id = new IdDto() { id = idFile, session = MainForm.cloudSession };
+            String data = Newtonsoft.Json.JsonConvert.SerializeObject(id);
+            HttpPost(data, "/api/Files/Delete");
+        }
+
         public static void DownloadFile(int idFile, String outPath)
         {
             IdDto id = new IdDto() { id = idFile, session = MainForm.cloudSession };

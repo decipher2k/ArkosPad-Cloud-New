@@ -865,15 +865,28 @@ namespace RicherTextBoxDemo
                 if (n.Tag != null)
                 {
                     String tag = ((XmlNodeData)n.Tag).ID;
-                    if (data.ContainsKey(tag))
+
+                    if (isCloud)
                     {
-                        IEnumerable<FileItem> items = data[tag].files.Where(a => a.caption == selectedFile);
-                        if (items.Count() > 0)
+                        if (listView1.SelectedItems.Count > 0)
                         {
-                            listView1.Items.Remove(listView1.SelectedItems[0]);
-                            data[tag].files.Remove(items.First());
-                            Files.updateFileList(this);
-                            this.exportToXml(_filename);
+                            int idFile = (int)listView1.SelectedItems[0].Tag;
+                            Sync.DeleteFile(idFile);
+                        }
+                    }
+                    else
+                    {
+
+                        if (data.ContainsKey(tag))
+                        {
+                            IEnumerable<FileItem> items = data[tag].files.Where(a => a.caption == selectedFile);
+                            if (items.Count() > 0)
+                            {
+                                listView1.Items.Remove(listView1.SelectedItems[0]);
+                                data[tag].files.Remove(items.First());
+                                Files.updateFileList(this);
+                                this.exportToXml(_filename);
+                            }
                         }
                     }
                 }

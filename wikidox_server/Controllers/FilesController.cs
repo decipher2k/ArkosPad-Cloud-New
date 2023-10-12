@@ -63,6 +63,19 @@ namespace WikiDoxServer.Controllers
             return null;
         }
 
+        [HttpPost]
+        [Route("Delete")]
+        public void Delete([FromBody] IdDto idDto)
+        {
+            Globals.getAuth(idDto.session);
+            if (_context.Files.Where(a => a.id == idDto.id).Count() > 0)
+            {
+                _context.Remove(_context.Files.Where(a => a.id == idDto.id).Single());
+                _context.SaveChanges();
+                SyncController.lastSync = DateTime.Now;
+            }
+        }
+
         [RequestSizeLimit(2147483648)]
         [HttpPost]
         [Route("Upload")]
@@ -88,7 +101,7 @@ namespace WikiDoxServer.Controllers
                 {
                     file.CopyTo(stream);
                 }
-
+                SyncController.lastSync = DateTime.Now;
 
                 // Process uploaded files
                 // Don't rely on or trust the FileName property without validation.
