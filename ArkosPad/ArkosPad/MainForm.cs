@@ -414,6 +414,8 @@ namespace RicherTextBoxDemo
         private bool notSaved = false;
         public bool exportToXml(String m_filename="", bool removeFocus=false)
         {
+            bool isCloudOld = isCloud;
+            isCloud = false;
             TreeNode n = treeView1.SelectedNode;
             if (n != null && n.Tag != null)
             {                
@@ -492,13 +494,14 @@ namespace RicherTextBoxDemo
                         notSaved = true;
                     }
 
-                    
+                    if (!Directory.Exists(tempDir + "\\_dat"))
+                        Directory.CreateDirectory(tempDir + "\\_dat");
                     StreamWriter sr = new StreamWriter(filename, false, System.Text.Encoding.UTF8);
                     sr.WriteLine("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
                     sr.WriteLine("<" + treeView1.Nodes[0].Text + ">");
                     foreach (TreeNode node in tv.Nodes)
                     {
-                        SaveLoad.saveNode(node.Nodes, sr, removeFocus);
+                        SaveLoad.saveNode(node.Nodes, sr, removeFocus,isCloudOld);
                     }
 
                     sr.WriteLine("</" + treeView1.Nodes[0].Text + ">");
@@ -506,14 +509,15 @@ namespace RicherTextBoxDemo
 
                     try
                     {
-                        File.Delete(Path.GetDirectoryName(filename) + "\\data.dat");
-                        DataStorage.SerializeNow(Path.GetDirectoryName(filename) + "\\data.dat", data);
+                        File.Delete(tempDir + "\\data.dat");
+                        DataStorage.SerializeNow(tempDir + "\\data.dat", data);
                         Microsoft.Win32.RegistryKey key;
                         key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("ArkosPad");
                         key.SetValue("LastFile", _zipFileName);
                         key.Close();
                         this._filename = filename;
                         setFormCaption();
+                        isCloud = isCloudOld;
                         return true;
                     }
                     catch (Exception ex)
@@ -527,8 +531,10 @@ namespace RicherTextBoxDemo
             }
             else
             {
+                isCloud = isCloudOld;
                 return false;
             }
+            isCloud = isCloudOld;
             return false;
         }
 
@@ -570,13 +576,13 @@ namespace RicherTextBoxDemo
 
                     try
                 {       
-                    if (!File.Exists(Path.GetDirectoryName(filename) + "\\data.dat")&&mdlg)
+                    if (!File.Exists(tempDir + "\\data.dat")&&mdlg)
                     {
                         MessageBox.Show(this, ".dat file not found.", "Error");
                     }
                     else
                     {
-                        data=DataStorage.DeSerializeNow((Path.GetDirectoryName(filename) + "\\data.dat"));
+                        data=DataStorage.DeSerializeNow(tempDir + "\\data.dat");
                         XmlDocument xDoc = new XmlDocument();
                         xDoc.Load(filename);
                         treeView1.Nodes.Clear();

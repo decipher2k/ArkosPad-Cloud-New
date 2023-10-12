@@ -145,7 +145,7 @@ namespace RicherTextBoxDemo
             IdDto id = new IdDto() { id = idFile, session = MainForm.cloudSession };
             String data = Newtonsoft.Json.JsonConvert.SerializeObject(id);
 
-            if (MainForm.isCloud)
+            //if (MainForm.isCloud)
             {
                 var request = (HttpWebRequest)WebRequest.Create(MainForm.cloudURL + "/api/Files/Download");
                 request.Method = "POST";
@@ -226,7 +226,7 @@ namespace RicherTextBoxDemo
         public static String HttpPost(String data, String path)
         {
             var responseString = "";
-            if (MainForm.isCloud)
+            //if (MainForm.isCloud)
             {
 
                 var request = (HttpWebRequest)WebRequest.Create(MainForm.cloudURL + path);

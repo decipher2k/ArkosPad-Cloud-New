@@ -54,19 +54,37 @@ namespace RicherTextBoxDemo
 
 
 
-        public static void saveNode(TreeNodeCollection tnc, StreamWriter sr, bool resetFocus=false)
+        public static void saveNode(TreeNodeCollection tnc, StreamWriter sr, bool resetFocus=false, bool importFiles=false)
         {
             foreach (TreeNode node in tnc)
             {
-                if (MainForm.isCloud)
+                if (MainForm.isCloud || importFiles)
                 {
-                    String id = ((XmlNodeData)node.Tag).ID;
-                    Sync.UpdateOrAddNode(MainForm.data[((XmlNodeData)node.Tag).ID].data, MainForm.data[((XmlNodeData)node.Tag).ID].weight, node);
-                    PageDto dto=new PageDto() { session=MainForm.cloudURL,url=Sync.getUrlFromTreeNode(node)};
-                    String idNode = Sync.HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(dto), "/api/MarkdownPage/GetIdByPath");
-                    foreach(FileItem f in MainForm.data[id].files)
+                    if (!importFiles)
                     {
-                        Sync.UploadFile(MainForm.tempDir+"\\_dat\\"+f.filepath, int.Parse(idNode), f.caption);
+                        String id = ((XmlNodeData)node.Tag).ID;
+                        Sync.UpdateOrAddNode(MainForm.data[((XmlNodeData)node.Tag).ID].data, MainForm.data[((XmlNodeData)node.Tag).ID].weight, node);
+                        PageDto dto = new PageDto() { session = MainForm.cloudURL, url = Sync.getUrlFromTreeNode(node) };
+                        String idNode = Sync.HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(dto), "/api/MarkdownPage/GetIdByPath");
+                        foreach (FileItem f in MainForm.data[id].files)
+                        {
+                            Sync.UploadFile(MainForm.tempDir + "\\_dat\\" + f.filepath, int.Parse(idNode), f.caption);
+                        }
+                    }
+                    else
+                    {
+                        String id = ((XmlNodeData)node.Tag).ID;
+                        List<FileDto.fileCapsule> fc = Sync.GetFiles(int.Parse(id));
+                        if (fc != null)
+                        {
+                            foreach (FileDto.fileCapsule f in fc)
+                            {
+                                int fileId = f.file.id;
+                                
+                                Sync.DownloadFile(fileId, MainForm.tempDir + "\\_dat\\" + f.file.encName);
+                                MainForm.data[id].files.Add(new FileItem() { caption = f.file.fileName, filepath = f.file.encName, idCloud = fileId });
+                            }
+                        }
                     }
                 }
 
@@ -88,7 +106,7 @@ namespace RicherTextBoxDemo
                     if(!MainForm.isCloud)
                         sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\""+node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (MainForm.data[((XmlNodeData)node.Tag).ID].focus?"1":"0") +"\">");
 
-                    saveNode(node.Nodes, sr,resetFocus);
+                    saveNode(node.Nodes, sr,resetFocus,importFiles);
 
                     if (!MainForm.isCloud)
                         sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
@@ -185,10 +203,12 @@ namespace RicherTextBoxDemo
                         treeNode.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
                     }
                 }
-
-                treeNode.Text = xNode.Attributes[0].Value;
-                treeNode.Tag= new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = TreeItem.maxWeight + 1 };
-                TreeItem.maxWeight++;
+                if (xNode.Attributes.Count > 0)
+                {
+                    treeNode.Text = xNode.Attributes[0].Value;
+                    treeNode.Tag = new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = TreeItem.maxWeight + 1 };
+                    TreeItem.maxWeight++;
+                }               
             }
         }
 
