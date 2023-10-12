@@ -17,6 +17,7 @@ namespace RicherTextBoxDemo
         public static DateTime lastSync=DateTime.Now;
         public static String toRtf(String html)
         {
+            
             RichTextBox rtbTemp = new RichTextBox();
             WebBrowser wb = new WebBrowser();
             wb.Navigate("about:blank");
@@ -86,7 +87,7 @@ namespace RicherTextBoxDemo
         {
             PageDto pageDto = new PageDto();
             pageDto.url = getUrlFromTreeNode(item);
-            pageDto.text = text;
+            pageDto.text = text;            
             pageDto.weight = weight;
             pageDto.session= MainForm.cloudSession;
             HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(pageDto), "/api/MarkdownPage/SaveMarkupPage");

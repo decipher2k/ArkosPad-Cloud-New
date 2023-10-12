@@ -251,7 +251,7 @@ namespace RicherTextBoxDemo
                 ti.name = name;
                 ti.weight = maxWeight + 1;
                 maxWeight++;
-                ti.data = "";
+                ti.data = "<p></p>";
                 int id = getNextID();
                 data.Add(id.ToString(), ti);
                 TreeNode sel = treeView1.SelectedNode;
@@ -274,7 +274,7 @@ namespace RicherTextBoxDemo
 
                 if (isCloud)
                 {
-                    Sync.UpdateOrAddNode("", ti.weight, newNode);
+                    Sync.UpdateOrAddNode(" ", ti.weight, newNode);
                     treeView1.Nodes.Remove(newNode);
                 }
             }
@@ -701,9 +701,16 @@ namespace RicherTextBoxDemo
             String s1 = "ArkosPad v3.1  ";
             String s2 = "";
             String s3 = "";
-            if (_zipFileName != null && _zipFileName != "")
+            if (!isCloud)
             {
-                s2 = "- " + _zipFileName + " ";
+                if (_zipFileName != null && _zipFileName != "")
+                {
+                    s2 = "- " + _zipFileName + " ";
+                }
+            }
+            else
+            {
+                s2 = "- <Cloud> ";
             }
             String breadcrumb = "";
             if (treeView1.SelectedNode != null)
@@ -719,7 +726,7 @@ namespace RicherTextBoxDemo
                 }
                 s3 = "- " + breadcrumb;
             }
-            this.Text = s1 + s2 + s3;
+            label4.Text = s1 + s2 + s3;
         }
 
         private void exportToMindMapToolStripMenuItem_Click(object sender, EventArgs e)

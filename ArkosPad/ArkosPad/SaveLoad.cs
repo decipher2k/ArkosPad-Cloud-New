@@ -193,7 +193,15 @@ namespace RicherTextBoxDemo
             TreeItem item = new TreeItem();
             item.weight = xmlNode.weight;
             item.name = xmlNode.name;
-            item.data = Sync.toRtf(xmlNode.data);
+            if (xmlNode.data.Trim().Length > 0)
+            {
+                item.data = Sync.toRtf(xmlNode.data);
+            }
+            else
+            {
+                item.data = "";
+            }
+
             item.focus = xmlNode.focus;
             data.Add(xmlNode.ID, item);
 
