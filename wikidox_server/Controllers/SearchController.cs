@@ -25,6 +25,7 @@ namespace WikiDoxServer.Controllers
         [Route("Search")]
         public SearchResultDto Search([FromBody] SearchRequestQuery query)
         {
+            Globals.getAuth(query.session);
             SearchResultDto ret = new SearchResultDto();
             if (query.searchPages)
             {

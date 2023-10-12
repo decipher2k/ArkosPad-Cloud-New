@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using WikiDoxServer.Dto;
 using WikiDoxServer.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace WikiDoxServer.Controllers
 {
@@ -42,6 +43,7 @@ namespace WikiDoxServer.Controllers
         [Route("GetNodes")]
         public SyncDTO getNodes([FromQuery] String session)
         {
+            Globals.getAuth(query.session);
             Globals.getAuth(session);
             SyncDTO rootDTO = new SyncDTO();
             rootDTO.ID = "1";
@@ -71,7 +73,8 @@ namespace WikiDoxServer.Controllers
         [Route("Clear")]
         public bool Clear([FromQuery] String session)
         {
-            Globals.getAuth(session);
+            if (Globals.getAuth(session).canEdit!=1)
+                throw new Exception();
 
             foreach (String f in Directory.EnumerateFiles(".\\files"))
                 System.IO.File.Delete(f);

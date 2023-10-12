@@ -378,6 +378,7 @@ namespace WikiDoxServer.Controllers
         [Route("GetIdByPath")]
         public long GetIdByPath([FromBody]PageDto page)
         {
+            Globals.getAuth(page.session);
             if (_context.MarkdownPages.Where(a => a.url == page.url).Count() > 0)
             {
                 MarkdownPages n = _context.MarkdownPages.Where(a => a.url == page.url).Single();
