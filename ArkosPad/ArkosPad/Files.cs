@@ -18,7 +18,7 @@ namespace RicherTextBoxDemo
                 TreeNode n = mainForm.getSelectedNode();
                 if (n.Tag != null)
                 {
-                    String tag = n.Tag.ToString();
+                    String tag = ((XmlNodeData)n.Tag).ID;
                     if (MainForm.data.ContainsKey(tag))
                     {
                         List<FileItem> fileItem = MainForm.data[tag].files;

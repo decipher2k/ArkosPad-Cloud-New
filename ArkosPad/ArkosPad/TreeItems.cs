@@ -15,7 +15,22 @@ namespace RicherTextBoxDemo
             if (mainForm.getSelectedNode() != null)
             {
                 TreeNode n = mainForm.getSelectedNode();
-                Files.updateFileList(mainForm);
+                if (!MainForm.isCloud)
+                {
+                    Files.updateFileList(mainForm);
+                }
+                else
+                {
+                    List<FileDto.fileCapsule> files = Sync.GetFiles(int.Parse(((XmlNodeData)n.Tag).ID));
+                    foreach( FileDto.fileCapsule file in files )
+                    {
+                        ListViewItem item = new ListViewItem();
+                        item.Text = file.file.fileName;
+                        item.Tag = file.file.id;
+                        mainForm.addLbFile(item);
+                    }
+                }
+
                 if (n.Tag != null)
                 {
                     String tag = ((XmlNodeData)n.Tag).ID;

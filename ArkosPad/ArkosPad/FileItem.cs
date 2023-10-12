@@ -7,6 +7,7 @@ namespace RicherTextBoxDemo
     {
         public String caption = "";
         public String filepath = "";
+        public int idCloud = 0;
         public override String ToString()
         {
             return caption;

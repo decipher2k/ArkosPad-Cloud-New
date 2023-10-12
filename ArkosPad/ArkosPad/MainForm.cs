@@ -106,6 +106,13 @@ namespace RicherTextBoxDemo
             listView1.Items.Add(filename);
         }
 
+        public void addLbFile(ListViewItem filename)
+        {
+            listView1.Items.Add(filename);
+        }
+
+        
+
         public void setRtfContent(String content)
         {
             richerTextBox1.Rtf=content;
@@ -230,6 +237,7 @@ namespace RicherTextBoxDemo
         private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
         {
             setFormCaption();
+            listView1.Items.Clear();
             TreeItems.SelectedItem(this,data);
         }
 
@@ -767,28 +775,40 @@ namespace RicherTextBoxDemo
                         String tag = ((XmlNodeData)n.Tag).ID;
                     if (data.ContainsKey(tag))
                     {
-                            if (data.Values.Where(a => a.name == caption).Count() > 0)
-                            {
-                                MessageBox.Show(this, "An item with that caption does allready exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            }
-                            else
+                        //    if (data.Values.Where(a => a.name == caption).Count() > 0)
+                          //  {
+                            //    MessageBox.Show(this, "An item with that caption does allready exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                           // }
+                            //else
                             {
                                 try
                                 {
-                                    String m_data = data[tag].data;
-                                    file = copyFile(file);
-                                    if (file != "")
+                                    if (!isCloud)
                                     {
-                                        FileItem item = new FileItem() { caption = caption, filepath = Path.GetFileName(file) };
-                                        listView1.Items.Add(item.caption);
-                                        data[tag].files.Add(item);
-
-                                        if (_filename != "")
+                                        String m_data = data[tag].data;
+                                        String origName = file;
+                                        file = copyFile(file);
+                                        if (file != "")
                                         {
-                                            exportToXml(_filename);
-                                        }
+                                            FileItem item = new FileItem() { caption = Path.GetFileName(origName), filepath = Path.GetFileName(file) };
+                                            listView1.Items.Add(item.caption);
+
+
+                                            data[tag].files.Add(item);
+
+
+                                            if (_filename != "")
+                                            {
+                                                exportToXml(_filename);
+                                            }
+                                        }                                   
                                     }
-                                }catch(Exception ex) {
+                                    else
+                                    {
+                                        Sync.UploadFile(file, int.Parse(tag));
+                                    }
+                                }
+                                catch(Exception ex) {
                                     MessageBox.Show(this, "Unable to add file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                 }
                             }
@@ -1251,16 +1271,32 @@ namespace RicherTextBoxDemo
                             String tag = ((XmlNodeData)n.Tag).ID;
                             if (data.ContainsKey(tag))
                             {
-                                fileName = data[tag].files.Where(a => a.caption == listView1.SelectedItems[0].Text).First().filepath;
-                                fileName = Path.GetDirectoryName(_filename) + "\\" + Path.GetFileName(_filename) + "_dat" + "\\" + fileName;
-                                SaveFileDialog saveFileDialog = new SaveFileDialog();
-                                saveFileDialog.Title = "Save " + Path.GetExtension(fileName) + " Document";
-                                saveFileDialog.Filter = Path.GetExtension(fileName) + " Files (*" + Path.GetExtension(fileName) + ")|*" + Path.GetExtension(fileName);
-                                saveFileDialog.FileName = Path.GetFileName(Application.StartupPath + "\\export_file" + Path.GetExtension(fileName));
-                                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                                if (!isCloud)
                                 {
-                                    File.Copy(Path.GetDirectoryName(_filename) + "\\" + Path.GetFileName(_filename) + "_dat" + "\\" + Path.GetFileName(fileName), saveFileDialog.FileName);
-                                    MessageBox.Show(this,"File saved as\n"+saveFileDialog.FileName,"File saved.",MessageBoxButtons.OK,MessageBoxIcon.None);
+
+                                    fileName = data[tag].files.Where(a => a.caption == listView1.SelectedItems[0].Text).First().filepath;
+                                    fileName = Path.GetDirectoryName(_filename) + "\\" + Path.GetFileName(_filename) + "_dat" + "\\" + fileName;
+                                    SaveFileDialog saveFileDialog = new SaveFileDialog();
+                                    saveFileDialog.Title = "Save " + Path.GetExtension(fileName) + " Document";
+                                    saveFileDialog.Filter = Path.GetExtension(fileName) + " Files (*" + Path.GetExtension(fileName) + ")|*" + Path.GetExtension(fileName);
+                                    saveFileDialog.FileName = Path.GetFileName(Application.StartupPath + "\\export_file" + Path.GetExtension(fileName));
+                                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                                    {
+                                        File.Copy(Path.GetDirectoryName(_filename) + "\\" + Path.GetFileName(_filename) + "_dat" + "\\" + Path.GetFileName(fileName), saveFileDialog.FileName);
+                                        MessageBox.Show(this, "File saved as\n" + saveFileDialog.FileName, "File saved.", MessageBoxButtons.OK, MessageBoxIcon.None);
+                                    }
+                                }
+                                else
+                                {
+                                    SaveFileDialog saveFileDialog = new SaveFileDialog();
+                                    saveFileDialog.Title = "Save " + Path.GetExtension(fileName) + " Document";
+                                    saveFileDialog.Filter = Path.GetExtension(fileName) + " Files (*" + Path.GetExtension(fileName) + ")|*" + Path.GetExtension(fileName);
+                                    saveFileDialog.FileName = Path.GetFileName(Application.StartupPath + "\\export_file" + Path.GetExtension(fileName));
+                                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                                    {
+                                        Sync.DownloadFile((int)listView1.SelectedItems[0].Tag, saveFileDialog.FileName);
+                                        MessageBox.Show(this, "File saved as\n" + saveFileDialog.FileName, "File saved.", MessageBoxButtons.OK, MessageBoxIcon.None);
+                                    }
                                 }
                             }
                         }
@@ -1374,6 +1410,11 @@ namespace RicherTextBoxDemo
                     }
                 }
             }
+        }
+
+        private void toolStripMenuItem9_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
