@@ -150,6 +150,8 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="notepad.ico" />
+    <None Include="Resources\folder1.png" />
+    <None Include="Resources\folder.png" />
     <None Include="Resources\minimize_73448471.png" />
     <None Include="Resources\multiplication_30322831.png" />
     <None Include="Resources\multiplication_3032283.png" />

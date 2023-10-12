@@ -17,7 +17,8 @@ namespace RicherTextBoxDemo
                 key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("ArkosPad");
                 if (key != null)
                 {
-                   filename = key.GetValue("LastFile").ToString();
+                    if(key.GetValue("LastFile") != null)
+                        filename = key.GetValue("LastFile").ToString();
                     key.Close();
                     return filename;
                 }
@@ -25,5 +26,40 @@ namespace RicherTextBoxDemo
             catch (Exception ex) { }
             return "";
         }
+
+        public static void setHostData(String host, String username)
+        {
+            String filename = "";
+            Microsoft.Win32.RegistryKey key;
+            key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("ArkosPad",true);
+            if (key != null)
+            {
+                key.SetValue("LastHost", host);
+                key.SetValue("LastUser", username);
+                key.Close();                
+            }
+        }
+
+        public static void getHostData(out String host, out String username)
+        {
+            host = "";
+            username = "";
+            String filename = "";
+            Microsoft.Win32.RegistryKey key;
+            key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("ArkosPad",true);
+            if (key != null)
+            {
+                try
+                {
+                    if(key.GetValue("LastHost")!=null)
+                        host = key.GetValue("LastHost").ToString();
+                    if(key.GetValue("LastUser")!= null)
+                        username = key.GetValue("LastUser").ToString();
+                }catch(Exception ex) { }
+                key.Close();
+            }
+        }
+
+
     }
 }

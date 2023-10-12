@@ -32,6 +32,12 @@ namespace RicherTextBoxDemo
         {
             if (cloudOnly)
                 groupBox1.Enabled = false;
+
+            Registry.getHostData(out url, out username);
+            textBox2.Text = url;
+            textBox3.Text = username;
+
+            textBox1.Text = Registry.getFilename();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -87,6 +93,9 @@ namespace RicherTextBoxDemo
 
                 this.DialogResult = DialogResult.OK;
                 this.isCloud = true;
+
+                Registry.setHostData(url, username);
+
                 this.Close();
             }
             else
