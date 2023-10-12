@@ -48,11 +48,15 @@ namespace RicherTextBoxDemo
         }
 
 
-        public static void UploadFile(String file, int idNode)
+        public static void UploadFile(String file, int idNode, String fileName = "")
         {
             NameValueCollection nvc = new NameValueCollection();
             nvc.Add("id", idNode.ToString());
-            nvc.Add("fileName", Path.GetFileName(file));
+            if(fileName=="")
+                nvc.Add("fileName", Path.GetFileName(file));
+            else
+                nvc.Add("fileName", fileName);
+
             nvc.Add("session", MainForm.cloudSession);
             HttpUploadFile(MainForm.cloudURL + "/api/Files/Upload", file, "file", "application/octet-stream", nvc);
         }

@@ -79,24 +79,36 @@ namespace RicherTextBoxDemo
                 request.Method = "POST";
                 request.ContentType ="text/json";
                 request.ContentLength = data.Length;
-
-                using (var stream = request.GetRequestStream())
+                try
                 {
-                    stream.Write(data, 0, data.Length);
+                    using (var stream = request.GetRequestStream())
+                    {
+                        stream.Write(data, 0, data.Length);
+                    }
+                    try
+                    {
+                        var response = (HttpWebResponse)request.GetResponse();
+
+                        var responseString = new StreamReader(response.GetResponseStream()).ReadToEnd();
+
+                        session = responseString;
+
+                        this.DialogResult = DialogResult.OK;
+                        this.isCloud = true;
+
+                        Registry.setHostData(url, username);
+
+                        this.Close();
+                    }
+                    catch
+                    {
+                        MessageBox.Show(this, "Invalid user data.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
-
-                var response = (HttpWebResponse)request.GetResponse();
-
-                var responseString = new StreamReader(response.GetResponseStream()).ReadToEnd();
-
-                session = responseString;
-
-                this.DialogResult = DialogResult.OK;
-                this.isCloud = true;
-
-                Registry.setHostData(url, username);
-
-                this.Close();
+                catch
+                {
+                    MessageBox.Show(this, "Can't connect to server.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
             else
             {

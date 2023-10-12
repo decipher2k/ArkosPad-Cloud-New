@@ -59,8 +59,16 @@ namespace RicherTextBoxDemo
             foreach (TreeNode node in tnc)
             {
                 if (MainForm.isCloud)
+                {
+                    String id = ((XmlNodeData)node.Tag).ID;
                     Sync.UpdateOrAddNode(MainForm.data[((XmlNodeData)node.Tag).ID].data, MainForm.data[((XmlNodeData)node.Tag).ID].weight, node);
-
+                    PageDto dto=new PageDto() { session=MainForm.cloudURL,url=Sync.getUrlFromTreeNode(node)};
+                    String idNode = Sync.HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(dto), "/api/MarkdownPage/GetIdByPath");
+                    foreach(FileItem f in MainForm.data[id].files)
+                    {
+                        Sync.UploadFile(MainForm.tempDir+"\\_dat\\"+f.filepath, int.Parse(idNode), f.caption);
+                    }
+                }
 
                 if (resetFocus)
                 {

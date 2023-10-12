@@ -44,7 +44,7 @@ namespace RicherTextBoxDemo
         String _zipFileName = "";
         public static Dictionary<String, TreeItem> data = new Dictionary<String, TreeItem>();
         private String selectedFile = "";
-        private String tempDir = "";
+        public static String tempDir = "";
         private System.Threading.Thread mainThread;
         public static bool isCloud = false;
         public static String cloudSession = "";
@@ -62,6 +62,8 @@ namespace RicherTextBoxDemo
                 if (int.Parse(key) > max)
                     max = int.Parse(key);
             }
+            if (max == 0)
+                max = 1;
             return max+1;
         }   
 
@@ -1422,37 +1424,44 @@ namespace RicherTextBoxDemo
 
         private void uploadToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show(this, "Warning! This will delete all content saved in the cloud!\nContinue?", "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.Yes)
+            if (!isCloud)
             {
-                if (!isCloud)
+                if (MessageBox.Show(this, "Warning! This will delete all content saved in the cloud!\nContinue?", "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.Yes)
                 {
-                    OpenFileDialog dlg = new OpenFileDialog();
-
-                    OpenFile f = new OpenFile(true);
-                    if (f.ShowDialog() == DialogResult.OK)
+                    if (!isCloud)
                     {
+                        OpenFileDialog dlg = new OpenFileDialog();
 
-                        isCloud = f.isCloud;
-
-                        if (f.isCloud)
+                        OpenFile f = new OpenFile(true);
+                        if (f.ShowDialog() == DialogResult.OK)
                         {
-                            cloudSession = f.session;
-                            cloudURL = f.url;
-                        }
-                    }
 
-                    if (isCloud)
-                    {
-                        Sync.Clear();
-                        foreach (TreeNode node in treeView1.Nodes)
-                        {
-                            StreamWriter sr = new StreamWriter(".\\tmp", false, System.Text.Encoding.UTF8);
-                            SaveLoad.saveNode(node.Nodes, sr, false);
+                            isCloud = f.isCloud;
+
+                            if (f.isCloud)
+                            {
+                                cloudSession = f.session;
+                                cloudURL = f.url;
+                            }
                         }
-                        mainThread = new System.Threading.Thread(syncThread);
-                        mainThread.Start();
+
+                        if (isCloud)
+                        {
+                            Sync.Clear();
+                            foreach (TreeNode node in treeView1.Nodes)
+                            {
+                                StreamWriter sr = new StreamWriter(".\\tmp", false, System.Text.Encoding.UTF8);
+                                SaveLoad.saveNode(node.Nodes, sr, false);
+                            }
+                            mainThread = new System.Threading.Thread(syncThread);
+                            mainThread.Start();
+                        }
                     }
                 }
+            }
+            else
+            {
+                MessageBox.Show(this, "You are allready connected to the cloud.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
