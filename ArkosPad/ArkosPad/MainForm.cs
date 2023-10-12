@@ -176,6 +176,20 @@ namespace RicherTextBoxDemo
                 Ionic.Zip.ZipFile zf = new Ionic.Zip.ZipFile(_zipFileName);
                 zf.ExtractAll(tempDir, Ionic.Zip.ExtractExistingFileAction.OverwriteSilently);
                 zf.Dispose();
+                string[] files = Directory.GetFiles(tempDir);
+                foreach (String f in files)
+                {
+                    if (f.Contains(".xml.dat") && !System.IO.File.Exists(tempDir + "\\" + "data.dat"))
+                        File.Move(f, tempDir + "\\data.dat");
+                    else if (f.Contains(".xml") && !f.Contains(".xml.dat") && !System.IO.File.Exists(tempDir + "\\" + "data.xml"))
+                        File.Move(f, tempDir + "\\" + "data.xml");
+                }
+
+                foreach(String dir in Directory.GetDirectories(tempDir))
+                {
+                    if(!Directory.Exists(tempDir + "_dat"))
+                        Directory.Move(dir, tempDir + "_dat");
+                }
             }
         }
 
@@ -619,7 +633,15 @@ namespace RicherTextBoxDemo
 
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
-        {           
+        {
+            tempDir = Path.GetTempPath();
+            String filePath = "";
+            do
+            {
+                filePath = RandomString(5);
+            } while (Directory.Exists(tempDir + "\\" + filePath));
+            tempDir = Path.GetTempPath() + "\\" + filePath;
+
             populateTreeview();
             setFormCaption();
             try
@@ -633,7 +655,7 @@ namespace RicherTextBoxDemo
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, "Can't save file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, "Can't open file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
