@@ -129,7 +129,7 @@ namespace RicherTextBoxDemo
                     file = Path.GetFileName(filename.Substring(0, filename.LastIndexOf(".")));
                 }
             }
-            return tempDir + "\\" + file + ".xml";
+            return tempDir + "\\data.xml";
         }
 
         public  void BackupDirectory(string directory, string target)
@@ -259,7 +259,7 @@ namespace RicherTextBoxDemo
                 ti.name = name;
                 ti.weight = maxWeight + 1;
                 maxWeight++;
-                ti.data = "<p></p>";
+                ti.data = "";
                 int id = getNextID();
                 data.Add(id.ToString(), ti);
                 TreeNode sel = treeView1.SelectedNode;
@@ -329,8 +329,8 @@ namespace RicherTextBoxDemo
 
         public void moveFiles(String oldFile, String newFile)
         {
-            String oldFileDir = Path.GetDirectoryName(oldFile)+"\\"+Path.GetFileName(oldFile)+"_dat";
-            String newFileDir = Path.GetDirectoryName(newFile) + "\\" + Path.GetFileName(newFile) + "_dat";
+            String oldFileDir = Path.GetDirectoryName(oldFile)+"\\_dat";
+            String newFileDir = Path.GetDirectoryName(newFile) + "\\_dat";
 
             if (Directory.Exists(oldFileDir))
             {
@@ -361,7 +361,7 @@ namespace RicherTextBoxDemo
             }
             else
             {
-                String newFileDir = Path.GetDirectoryName(_filename) + "\\" + Path.GetFileName(_filename) + "_dat";
+                String newFileDir = Path.GetDirectoryName(_filename) + "\\_dat";
 
                 if (!Directory.Exists(newFileDir))
                     Directory.CreateDirectory(newFileDir);
@@ -438,12 +438,12 @@ namespace RicherTextBoxDemo
 
                         try
                         {
-                            moveFiles(getXmlFromFilename(_zipFileName), Path.GetTempPath() + "\\" + filePath + "\\" + Path.GetFileName(filename.Substring(0, filename.LastIndexOf(".")) + ".xml"));
+                            moveFiles(getXmlFromFilename(_zipFileName), Path.GetTempPath() + "\\" + filePath + "\\data.xml");
                         }
                         catch { }
 
                         Directory.CreateDirectory(Path.GetTempPath() + "\\" + filePath);
-                        Directory.CreateDirectory(Path.GetTempPath() + "\\" + filePath + "\\" + Path.GetFileName(filename) + "_dat");
+                        Directory.CreateDirectory(Path.GetTempPath() + "\\" + filePath + "\\_dat");
                         /*if(tempDir!="")
                             moveFiles(tempDir, Path.GetTempPath() + "\\" + filePath);*/
                         
@@ -481,8 +481,8 @@ namespace RicherTextBoxDemo
 
                     try
                     {
-                        File.Delete(filename + ".dat");
-                        DataStorage.SerializeNow(filename + ".dat", data);
+                        File.Delete(Path.GetDirectoryName(filename) + "\\data.dat");
+                        DataStorage.SerializeNow(Path.GetDirectoryName(filename) + "\\data.dat", data);
                         Microsoft.Win32.RegistryKey key;
                         key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("ArkosPad");
                         key.SetValue("LastFile", _zipFileName);
@@ -545,13 +545,13 @@ namespace RicherTextBoxDemo
 
                     try
                 {       
-                    if (!File.Exists(filename + ".dat")&&mdlg)
+                    if (!File.Exists(Path.GetDirectoryName(filename) + "\\data.dat")&&mdlg)
                     {
                         MessageBox.Show(this, ".dat file not found.", "Error");
                     }
                     else
                     {
-                        data=DataStorage.DeSerializeNow(filename + ".dat");
+                        data=DataStorage.DeSerializeNow((Path.GetDirectoryName(filename) + "\\data.dat"));
                         XmlDocument xDoc = new XmlDocument();
                         xDoc.Load(filename);
                         treeView1.Nodes.Clear();
@@ -836,7 +836,7 @@ namespace RicherTextBoxDemo
                     if (data.ContainsKey(tag))
                     {
                         fileName = data[tag].files.Where(a => a.caption == listView1.SelectedItems[0].Text).First().filepath;
-                        fileName = Path.GetDirectoryName(_filename) + "\\" + Path.GetFileName(_filename) + "_dat" + "\\" + fileName;
+                        fileName = Path.GetDirectoryName(_filename) + "\\_dat" + "\\" + fileName;
                         if (File.Exists(fileName))
                         {
                             Process p = new Process();
@@ -1275,14 +1275,14 @@ namespace RicherTextBoxDemo
                                 {
 
                                     fileName = data[tag].files.Where(a => a.caption == listView1.SelectedItems[0].Text).First().filepath;
-                                    fileName = Path.GetDirectoryName(_filename) + "\\" + Path.GetFileName(_filename) + "_dat" + "\\" + fileName;
+                                    fileName = Path.GetDirectoryName(_filename) + "\\_dat" + "\\" + fileName;
                                     SaveFileDialog saveFileDialog = new SaveFileDialog();
                                     saveFileDialog.Title = "Save " + Path.GetExtension(fileName) + " Document";
                                     saveFileDialog.Filter = Path.GetExtension(fileName) + " Files (*" + Path.GetExtension(fileName) + ")|*" + Path.GetExtension(fileName);
                                     saveFileDialog.FileName = Path.GetFileName(Application.StartupPath + "\\export_file" + Path.GetExtension(fileName));
                                     if (saveFileDialog.ShowDialog() == DialogResult.OK)
                                     {
-                                        File.Copy(Path.GetDirectoryName(_filename) + "\\" + Path.GetFileName(_filename) + "_dat" + "\\" + Path.GetFileName(fileName), saveFileDialog.FileName);
+                                        File.Copy(Path.GetDirectoryName(_filename) + "\\_dat" + "\\" + Path.GetFileName(fileName), saveFileDialog.FileName);
                                         MessageBox.Show(this, "File saved as\n" + saveFileDialog.FileName, "File saved.", MessageBoxButtons.OK, MessageBoxIcon.None);
                                     }
                                 }
