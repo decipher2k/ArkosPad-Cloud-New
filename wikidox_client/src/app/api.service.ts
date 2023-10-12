@@ -15,10 +15,12 @@ import { ConfigService } from './config-service.service';
 
 
 export class ApiService {
+
   url="";
   constructor(private httpClient: HttpClient, private cookieService: CookieService,private configService:ConfigService) {
 
 }
+
 API_KEY;
 headers={"Content-Type": "application/json"};
 options = { headers: this.headers, responseType:'text' };
@@ -88,7 +90,7 @@ public ngOnInit()
   {
     this.API_KEY=this.cookieService.get("sessionID");
     let d=new UserDataDto(this.API_KEY,username,password,canCreate,canEdit,canUpload,isAdmin);
-    return this.httpClient.post("this.configService.baseUrl+users/EditUser",d,{ headers: this.headers, responseType:'text' });
+    return this.httpClient.post(this.configService.baseUrl+"users/EditUser",d,{ headers: this.headers, responseType:'text' });
   }
 
   public deleteUser(username)

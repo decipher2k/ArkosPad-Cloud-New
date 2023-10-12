@@ -6,6 +6,7 @@ import { DOCUMENT } from '@angular/common';
 import { showtree } from '../../../assets/showtree.js';
 import {FormsModule } from "@angular/forms";
 import { CookieService } from 'ngx-cookie-service';
+import { ConfigService } from '../../config-service.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -62,18 +63,20 @@ treeSettings: jqwidgets.TreeOptions;
 items;
 key;
 session;
+baseUrl;
+innerDiv;
 
   constructor( private apiService: ApiService, private _renderer2: Renderer2, 
-    @Inject(DOCUMENT) private _document: Document,private cookieService:CookieService) { 
+    @Inject(DOCUMENT) private _document: Document,private cookieService:CookieService, config: ConfigService) { 
 
     this.session=cookieService.get("sessionID");
     this.apiService.getTree().toPromise().then((data:string)=>{
     this.data=data;
     this.items=data["items"];
+    this.baseUrl=config.baseUrl;    
     
-    
-    
-    
+  
+
     let script = this._renderer2.createElement('script');
         script.type = `text/javascript`;
         script.text = "$('#tree1').tree({  saveState: true, onCanSelectNode: function(node) "+
@@ -107,7 +110,7 @@ session;
     );`;
 
         this._renderer2.appendChild(this._document.body, script);
-    
+        
         showtree();
      
     });  

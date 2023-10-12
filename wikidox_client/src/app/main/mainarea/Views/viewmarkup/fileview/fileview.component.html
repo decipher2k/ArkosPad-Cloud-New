@@ -7,7 +7,7 @@
 <!--
 <ul>
   <li *ngFor="let fls of files">
-    <a class="link-unstyled" href="https://xn--gnrgy-jua.co/api/files/Download?id={{fls.file.id}}&session={{session}}"><font size="3">{{ fls.file.fileName }}</font></a>
+    <a class="link-unstyled" href="{{baseUrl}}/api/files/Download?id={{fls.file.id}}&session={{session}}"><font size="3">{{ fls.file.fileName }}</font></a>
   </li>
 </ul>
 <br>

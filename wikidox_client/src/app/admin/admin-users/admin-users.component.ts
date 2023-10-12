@@ -48,7 +48,7 @@ this.apiService.getUserAcl(event).subscribe(data2=>{
 	    this.isAdmin=this.authCurrUser.isAdmin==1?true:false;
 	    this.canCreate=this.authCurrUser.canCreate==1?true:false;
 	    this.canEdit=this.authCurrUser.canEdit==1?true:false;
-	    this.canUpload=this.authCurrUser.canUpload==1?true:false;        
+	    this.canUpload=this.authCurrUser.canUpload==1?true:false;
 });
 
 
