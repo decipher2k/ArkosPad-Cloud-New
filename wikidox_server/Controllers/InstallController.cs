@@ -58,7 +58,7 @@ namespace WikiDoxServer.Controllers
                 u.canUpload = 1;
                 u.isAdmin = 1;
                 u.username = "admin";
-                u.password = "21232f297a57a5a743894a0e4a801fc3";
+                u.password = GenerateHash("admin", "");
                 _context.User.Add(u);
                 _context.SaveChanges();
 
@@ -66,16 +66,7 @@ namespace WikiDoxServer.Controllers
                     Directory.CreateDirectory("./files");
 
                 return "Installation finished. Please login using admin:admin and change the password.";
-            }
-            User u1 = new User();
-            u1.canCreate = 1;
-            u1.canEdit = 1;
-            u1.canUpload = 1;
-            u1.isAdmin = 1;
-            u1.username = "admin";
-            u1.password = GenerateHash("Blubb12345", "");
-            _context.User.Update(u1);
-            _context.SaveChanges();
+            }            
             return "Installation finished.";
         }
     }
