@@ -32,8 +32,8 @@ namespace WikiDoxServer.Controllers
         [Route("Install")]
         public String Install()
         {
-      
 
+            String sPass = System.IO.File.ReadAllText(".\\user.conf");
             if (_context.Node.Where(a => a.id == 1).Count() < 1)
             {
 
@@ -58,7 +58,7 @@ namespace WikiDoxServer.Controllers
                 u.canUpload = 1;
                 u.isAdmin = 1;
                 u.username = "admin";
-                u.password = GenerateHash("admin", "");
+                u.password = GenerateHash(sPass, "");
                 _context.User.Add(u);
                 _context.SaveChanges();
 
@@ -66,7 +66,15 @@ namespace WikiDoxServer.Controllers
                     Directory.CreateDirectory("./files");
 
                 return "Installation finished. Please login using admin:admin and change the password.";
-            }            
+            }
+            else
+            {
+                User u=_context.User.Where(a=>a.username=="admin").FirstOrDefault();
+                u.password = GenerateHash(sPass, "");
+                _context.User.Update(u);
+                _context.SaveChanges();
+
+            }
             return "Installation finished.";
         }
     }

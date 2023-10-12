@@ -43,7 +43,6 @@ namespace WikiDoxServer.Controllers
         [Route("GetNodes")]
         public SyncDTO getNodes([FromQuery] String session)
         {
-            Globals.getAuth(query.session);
             Globals.getAuth(session);
             SyncDTO rootDTO = new SyncDTO();
             rootDTO.ID = "1";

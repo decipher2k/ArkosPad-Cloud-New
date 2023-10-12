@@ -82,7 +82,7 @@ namespace WikiDoxServer.Controllers
         public String Upload()
         {
             
-            UserDataDto auth = Globals.getAuth(Request.Form["session"].ToString());            )
+            UserDataDto auth = Globals.getAuth(Request.Form["session"].ToString());            
             if (auth.canUpload == 1)
             {
                 var file = Request.Form.Files[0];//*.Files[0];

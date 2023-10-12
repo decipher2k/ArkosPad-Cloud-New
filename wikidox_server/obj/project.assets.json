@@ -1224,9 +1224,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\WikiDoxServer.csproj",
-      "projectName": "WikiDoxServer",
-      "projectPath": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\WikiDoxServer.csproj",
+      "projectUniqueName": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\ArkosPadServer.csproj",
+      "projectName": "ArkosPadServer",
+      "projectPath": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\ArkosPadServer.csproj",
       "packagesPath": "C:\\Users\\Shadow\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\obj\\",
       "projectStyle": "PackageReference",

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "6LglFRSVFPdTT406iNN4/7pgmrn4mBxDNxJLPHETtHxOvemVAHpIwuVMZtgJyXezKbg+5reJizDFnGsMf1R6sA==",
+  "dgSpecHash": "PL+dUvfPJY2/2M4HZYWVGYehEndB5PU7OLrxCbPe336xY9E2dExH/opipusJZuBuh2aLznrUloqQs4SqCM+b+Q==",
   "success": true,
-  "projectFilePath": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\WikiDoxServer.csproj",
+  "projectFilePath": "C:\\Users\\Shadow\\Documents\\GitHub\\ArkosPad-Cloud-New\\wikidox_server\\ArkosPadServer.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Shadow\\.nuget\\packages\\microsoft.aspnetcore.jsonpatch\\7.0.11\\microsoft.aspnetcore.jsonpatch.7.0.11.nupkg.sha512",
     "C:\\Users\\Shadow\\.nuget\\packages\\microsoft.aspnetcore.mvc.newtonsoftjson\\7.0.11\\microsoft.aspnetcore.mvc.newtonsoftjson.7.0.11.nupkg.sha512",

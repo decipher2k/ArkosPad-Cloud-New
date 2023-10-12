@@ -4,8 +4,8 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
 -->
 <Project>
   <PropertyGroup>
-    <_PublishTargetUrl>F:\WikiDox\wikidox_server\bin\Release\net7.0\publish\</_PublishTargetUrl>
-    <History>True|2023-10-04T17:49:08.2041972Z;True|2023-10-04T19:11:37.2364587+02:00;</History>
+    <_PublishTargetUrl>C:\Users\Shadow\Documents\GitHub\ArkosPad-Cloud-New\wikidox_server\bin\Release\net7.0\publish\</_PublishTargetUrl>
+    <History>True|2023-10-12T12:19:18.5132470Z;True|2023-10-12T14:18:40.4152461+02:00;True|2023-10-04T19:49:08.2041972+02:00;True|2023-10-04T19:11:37.2364587+02:00;</History>
     <LastFailureDetails />
   </PropertyGroup>
 </Project>
