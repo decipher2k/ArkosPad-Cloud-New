@@ -51,19 +51,26 @@ namespace WikiDoxServer.Controllers
                 throw new Exception();
             try
             {
-                User u = new User();
-                u.canCreate = 0;
-                u.canEdit = 0;
-                u.canUpload = 0;
-                u.isAdmin = 0;
-                String salt= CreateSalt(16);
-                u.salt = salt;
-                u.username = userData.username;
-                u.password = GenerateHash(userData.password, salt);
-                
-                _context.User.Add(u);
-                _context.SaveChanges();
-                return true;
+                if (_context.User.Where(a => a.username == userData.username).Count() == 0)
+                {
+                    User u = new User();
+                    u.canCreate = 0;
+                    u.canEdit = 0;
+                    u.canUpload = 0;
+                    u.isAdmin = 0;
+                    String salt = CreateSalt(16);
+                    u.salt = salt;
+                    u.username = userData.username;
+                    u.password = GenerateHash(userData.password, salt);
+
+                    _context.User.Add(u);
+                    _context.SaveChanges();
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }catch(Exception ex)
             {
                 throw new Exception();
