@@ -87,6 +87,7 @@ namespace RicherTextBoxDemo
             this.Controls.Add(this.label1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "New";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "New Item";
             this.Load += new System.EventHandler(this.New_Load);
             this.ResumeLayout(false);

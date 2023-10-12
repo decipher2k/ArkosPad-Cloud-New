@@ -205,6 +205,7 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "OpenFile";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Open ArkosPad Project";
             this.Load += new System.EventHandler(this.OpenFile_Load);
             this.groupBox1.ResumeLayout(false);
