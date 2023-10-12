@@ -177,6 +177,13 @@ namespace RicherTextBoxDemo
             }
         }
 
+        private void resetSyncThread()
+        {
+            System.Threading.Thread.Sleep(3000);
+            label5.Invoke(new Action(() => {try { label5.ForeColor = Color.White; } catch { } }));
+        }
+    
+
         private void syncThread()
         {
             while(!closing)
@@ -186,7 +193,9 @@ namespace RicherTextBoxDemo
                 {
                     Sync.lastSync = dat;
                     treeView1.Invoke(new Action(()=> data = Sync.fetchNodes(treeView1)));
-                }
+                    label5.Invoke(new Action(() => label5.Text = "Last Synchronisation: " + DateTime.Now.ToShortTimeString())); label5.ForeColor = Color.LightGreen;};
+                System.Threading.Thread t = new System.Threading.Thread(resetSyncThread);
+                t.Start();
                 System.Threading.Thread.Sleep(1000);
             }
         }
@@ -669,8 +678,11 @@ namespace RicherTextBoxDemo
         {
             if(treeView1.SelectedNode!=null&&treeView1.SelectedNode.Tag!=null)
             {
-                if(isCloud)
+                if (isCloud)
+                {
+
                     Sync.DeleteNode(treeView1.SelectedNode);
+                }
                 else
                     removeNode(treeView1.SelectedNode);
                 notSaved = true;

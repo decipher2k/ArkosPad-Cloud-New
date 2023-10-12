@@ -73,6 +73,7 @@
             this.uploadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.label5 = new System.Windows.Forms.Label();
             this.menuStrip1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -477,6 +478,7 @@
             // panel3
             // 
             this.panel3.BackColor = System.Drawing.Color.Black;
+            this.panel3.Controls.Add(this.label5);
             this.panel3.Controls.Add(this.linkLabel1);
             this.panel3.Location = new System.Drawing.Point(0, 603);
             this.panel3.Margin = new System.Windows.Forms.Padding(2);
@@ -551,6 +553,15 @@
             this.pictureBox1.TabIndex = 19;
             this.pictureBox1.TabStop = false;
             this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.ForeColor = System.Drawing.Color.White;
+            this.label5.Location = new System.Drawing.Point(18, 4);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(0, 13);
+            this.label5.TabIndex = 17;
             // 
             // MainForm
             // 
@@ -643,6 +654,7 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.ToolStripMenuItem cloudToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem uploadToolStripMenuItem;
+        private System.Windows.Forms.Label label5;
     }
 }
 

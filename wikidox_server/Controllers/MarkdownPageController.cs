@@ -91,20 +91,28 @@ namespace WikiDoxServer.Controllers
                 long idNode = p.idNode;
                 if (_context.NodeCapsule.FromSql($"SELECT * FROM NodeCapsule WHERE Nodeid={idNode}").Count() >0)
                 {
-                    return "HASCHILDREN";
+                    throw new Exception();
                 }
                 else
                 {
                     
-                    _context.MarkdownPages.Remove(p);
-                    Node n = _context.Node.Where(a => a.id == idNode).ToList()[0];
+                    
+                    
                     Node.NodeCapsule nc= _context.NodeCapsule.Where(a =>a.idNode == idNode).ToList()[0];
-                    _context.NodeCapsule.Remove(nc);
+                    Node n = _context.Node.Where(a => a.id == idNode).ToList()[0];
+                    _context.MarkdownPages.Remove(p);
+                    _context.SaveChanges();
                     _context.Node.Remove(n);
+                    _context.SaveChanges();
+                    _context.NodeCapsule.Remove(nc);
                     _context.SaveChanges();
                     
                     //_context.NodeCapsule.FromSql("DELETE FROM NodeCapsule WHERE idNode={0}", idNode);
                 }
+            }
+            else
+            {
+                throw new Exception();
             }
             return "OK";
         }
