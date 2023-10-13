@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RicherTextBoxDemo.DtO;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -9,9 +10,9 @@ using System.Windows.Forms;
 using System.Xml;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
-namespace RicherTextBoxDemo
+namespace RicherTextBoxDemo.ArkosPadFiles
 {
-    class SaveLoad
+    class Nodes
     {
         //We use this in the export and the saveNode 
         //functions, though it's only instantiated once.
@@ -25,14 +26,14 @@ namespace RicherTextBoxDemo
             {
                 
                     String tpl = "";
-                    if (MainForm.data[((XmlNodeData)node.Tag).ID.ToString()].data.Trim().Length>1)
+                    if (Globals.data[((XmlNodeData)node.Tag).ID.ToString()].data.Trim().Length>1)
                     {
                         tpl = File.ReadAllText("templates\\mm_details_node.mm");
                         tpl = tpl.Replace("$$$NODE$$$", node.Text);
                         tpl = tpl.Replace("$$$TAG$$$", node.Tag.ToString());
 
                     RicherTextBox.RicherTextBox tb = new RicherTextBox.RicherTextBox();
-                    tb.Rtf = MainForm.data[((XmlNodeData)node.Tag).ID].data;
+                    tb.Rtf = Globals.data[((XmlNodeData)node.Tag).ID].data;
                     tpl = tpl.Replace("$$$TEXT$$$","\r\n"+tb.Text.Replace("\"","\\\"")+"\r\n");
                     }
                     else
@@ -58,17 +59,17 @@ namespace RicherTextBoxDemo
         {
             foreach (TreeNode node in tnc)
             {
-                if (MainForm.isCloud || importFiles)
+                if (Globals.isCloud || importFiles)
                 {
                     if (!importFiles)
                     {
                         String id = ((XmlNodeData)node.Tag).ID;
-                        Sync.UpdateOrAddNode(MainForm.data[((XmlNodeData)node.Tag).ID].data, MainForm.data[((XmlNodeData)node.Tag).ID].weight, node);
-                        PageDto dto = new PageDto() { session = MainForm.cloudURL, url = Sync.getUrlFromTreeNode(node) };
+                        Sync.UpdateOrAddNode(Globals.data[((XmlNodeData)node.Tag).ID].data, Globals.data[((XmlNodeData)node.Tag).ID].weight, node);
+                        PageDto dto = new PageDto() { session = Globals.cloudSession, url = Sync.getUrlFromTreeNode(node) };
                         String idNode = Sync.HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(dto), "/api/MarkdownPage/GetIdByPath");
-                        foreach (FileItem f in MainForm.data[id].files)
+                        foreach (FileItem f in Globals.data[id].files)
                         {
-                            Sync.UploadFile(MainForm.tempDir + "\\_dat\\" + f.filepath, int.Parse(idNode), f.caption);
+                            Sync.UploadFile(Globals.tempDir + "\\_dat\\" + f.filepath, int.Parse(idNode), f.caption);
                         }
                     }
                     else
@@ -81,8 +82,8 @@ namespace RicherTextBoxDemo
                             {
                                 int fileId = f.file.id;
                                 
-                                Sync.DownloadFile(fileId, MainForm.tempDir + "\\_dat\\" + f.file.encName);
-                                MainForm.data[id].files.Add(new FileItem() { caption = f.file.fileName, filepath = f.file.encName, idCloud = fileId });
+                                Sync.DownloadFile(fileId, Globals.tempDir + "\\_dat\\" + f.file.encName);
+                                Globals.data[id].files.Add(new FileItem() { caption = f.file.fileName, filepath = f.file.encName, idCloud = fileId });
                             }
                         }
                     }
@@ -90,10 +91,10 @@ namespace RicherTextBoxDemo
 
                 if (resetFocus)
                 {
-                    MainForm.data[((XmlNodeData)node.Tag).ID].focus = false;
+                    Globals.data[((XmlNodeData)node.Tag).ID].focus = false;
                     node.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
                 }
-                else if (MainForm.data[((XmlNodeData)node.Tag).ID].focus)
+                else if (Globals.data[((XmlNodeData)node.Tag).ID].focus)
                 {
                     node.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Bold);
                 }
@@ -103,19 +104,19 @@ namespace RicherTextBoxDemo
                 //the children
                 if (node.Nodes.Count > 0)
                 {
-                    if(!MainForm.isCloud)
-                        sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\""+node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (MainForm.data[((XmlNodeData)node.Tag).ID].focus?"1":"0") +"\">");
+                    if(!Globals.isCloud)
+                        sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\""+node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (Globals.data[((XmlNodeData)node.Tag).ID].focus?"1":"0") +"\">");
 
                     saveNode(node.Nodes, sr,resetFocus,importFiles);
 
-                    if (!MainForm.isCloud)
+                    if (!Globals.isCloud)
                         sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
                 }
                 else //No child nodes, so we just write the text
                 {
-                    if (!MainForm.isCloud)
+                    if (!Globals.isCloud)
                     {
-                        sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\"" + node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (MainForm.data[((XmlNodeData)node.Tag).ID].focus ? "1" : "0") + "\">");
+                        sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\"" + node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (Globals.data[((XmlNodeData)node.Tag).ID].focus ? "1" : "0") + "\">");
                         sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
                     }
                 }
@@ -154,8 +155,8 @@ namespace RicherTextBoxDemo
                     }
                     xNode = xmlNode.ChildNodes[x];
                     TreeNode n = new TreeNode(xNode.Attributes[0].Value);
-                    n.Tag = new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = TreeItem.maxWeight+1 };
-                    TreeItem.maxWeight++;
+                    n.Tag = new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = Globals._maxWeight+1 };
+                    Globals._maxWeight++;
                     treeNode.Nodes.Add(n);
                     tNode = treeNode.Nodes[x];
 
@@ -206,8 +207,8 @@ namespace RicherTextBoxDemo
                 if (xNode.Attributes.Count > 0)
                 {
                     treeNode.Text = xNode.Attributes[0].Value;
-                    treeNode.Tag = new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = TreeItem.maxWeight + 1 };
-                    TreeItem.maxWeight++;
+                    treeNode.Tag = new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = Globals._maxWeight + 1 };
+                    Globals._maxWeight++;
                 }               
             }
         }

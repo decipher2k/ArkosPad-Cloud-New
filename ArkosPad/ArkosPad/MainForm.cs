@@ -20,7 +20,11 @@ using Microsoft.VisualBasic.Devices;
 using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
 using RicherTextBox;
-using static RicherTextBoxDemo.SaveLoad;
+using RicherTextBoxDemo.ArkosPadFiles;
+using RicherTextBoxDemo.Attachments;
+using RicherTextBoxDemo.DtO;
+using RicherTextBoxDemo.TreeControl;
+using static RicherTextBoxDemo.ArkosPadFiles.Nodes;
 
 
 namespace RicherTextBoxDemo
@@ -31,7 +35,7 @@ namespace RicherTextBoxDemo
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
 
-        int maxWeight = 1;
+      
 
         [DllImportAttribute("user32.dll")]
         private static extern int SendMessage(IntPtr hWnd,
@@ -40,32 +44,17 @@ namespace RicherTextBoxDemo
         private static extern bool ReleaseCapture();
 
         private int startTV;
-        String _filename = "";
-        String _zipFileName = "";
-        public static Dictionary<String, TreeItem> data = new Dictionary<String, TreeItem>();
-        private String selectedFile = "";
-        public static String tempDir = "";
+        public String selectedFile = "";
         private System.Threading.Thread mainThread;
-        public static bool isCloud = false;
-        public static String cloudSession = "";
-        public static String cloudURL = "";
+        public static MainForm instance;
+        TreeControl.TreeView treeView;
+
         public void removeFocus()
         {
-            exportToXml(_filename, true);
+            new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename, true);
         }
 
-        public int getNextID()
-        {
-            int max = 0;
-            foreach(String key in data.Keys)
-            {
-                if (int.Parse(key) > max)
-                    max = int.Parse(key);
-            }
-            if (max == 0)
-                max = 1;
-            return max+1;
-        }   
+     
 
         public void init()
         {
@@ -82,15 +71,16 @@ namespace RicherTextBoxDemo
 
         public MainForm(String _key="")
         {
+            instance = this;
             if(!_key.Contains(".arkospad"))
                 idInit = _key;
             else
-                _zipFileName = _key;
+                Globals._zipFileName = _key;
 
             InitializeComponent();
             init();
             timer1.Start();
-            RegisterUriScheme();
+            Misc.Tools.RegisterUriScheme();
         }
 
         public void clearLbFiles()
@@ -111,88 +101,13 @@ namespace RicherTextBoxDemo
         public void addLbFile(ListViewItem filename)
         {
             listView1.Items.Add(filename);
-        }
-
-        
+        }        
 
         public void setRtfContent(String content)
         {
             richerTextBox1.Rtf=content;
         }
-        
-        String getXmlFromFilename(String filename)
-        {
-            String file = "";
-            if (filename !=null)
-            {                
-                if (filename != "")
-                {
-                    String xml = tempDir;
-                    file = Path.GetFileName(filename.Substring(0, filename.LastIndexOf(".")));
-                }
-            }
-            return tempDir + "\\data.xml";
-        }
-
-        public  void BackupDirectory(string directory, string target)
-        {
-            directory = directory.Replace("\\\\", "\\");
-            
-            using (ZipFile zip = new ZipFile
-            {
-                CompressionLevel = CompressionLevel.BestCompression
-            })
-            {
-                var files = Directory.GetFiles(directory, "*",
-                    System.IO.SearchOption.AllDirectories).ToArray();
-
-                foreach (var f in files)
-                {
-                    zip.AddFile(f,
-                        Path.GetDirectoryName(f).
-                        Replace(directory, string.Empty));
-                }
-
-                zip.Save(target);
-            }
-        }
-        private void saveFiles()
-        {
-            try
-            {
-                BackupDirectory(tempDir, _zipFileName);
-                notSaved = false;
-            }catch(Exception e)
-            {
-                MessageBox.Show(this,"Can't save file.","Error",MessageBoxButtons.OK,MessageBoxIcon.Error);
-            }
-        }
-
-        private void loadFiles(String filename)
-        {
-            if (tempDir != "")
-            {
-                Directory.CreateDirectory(tempDir);
-                Ionic.Zip.ZipFile zf = new Ionic.Zip.ZipFile(_zipFileName);
-                zf.ExtractAll(tempDir, Ionic.Zip.ExtractExistingFileAction.OverwriteSilently);
-                zf.Dispose();
-                string[] files = Directory.GetFiles(tempDir);
-                foreach (String f in files)
-                {
-                    if (f.Contains(".xml.dat") && !System.IO.File.Exists(tempDir + "\\" + "data.dat"))
-                        File.Move(f, tempDir + "\\data.dat");
-                    else if (f.Contains(".xml") && !f.Contains(".xml.dat") && !System.IO.File.Exists(tempDir + "\\" + "data.xml"))
-                        File.Move(f, tempDir + "\\" + "data.xml");
-                }
-
-                foreach(String dir in Directory.GetDirectories(tempDir))
-                {
-                    if(!Directory.Exists(tempDir + "_dat"))
-                        Directory.Move(dir, tempDir + "_dat");
-                }
-            }
-        }
-
+                     
         private void resetSyncThread()
         {
             System.Threading.Thread.Sleep(3000);
@@ -200,15 +115,15 @@ namespace RicherTextBoxDemo
         }
     
 
-        private void syncThread()
+        public void syncThread()
         {
             while(!closing)
             {
-                DateTime dat=DateTime.Parse(new WebClient().DownloadString(cloudURL+"/api/Sync/GetLastSync"));
+                DateTime dat=DateTime.Parse(new WebClient().DownloadString(Globals.cloudURL+"/api/Sync/GetLastSync"));
                 if(Sync.lastSync!=dat)
                 {
                     Sync.lastSync = dat;
-                    treeView1.Invoke(new Action(()=> data = Sync.fetchNodes(treeView1)));
+                    treeView1.Invoke(new Action(()=> Globals.data = Sync.fetchNodes(treeView1)));
                     label5.Invoke(new Action(() => label5.Text = "Last Synchronisation: " + DateTime.Now.ToShortTimeString())); label5.ForeColor = Color.LightGreen;};
                 System.Threading.Thread t = new System.Threading.Thread(resetSyncThread);
                 t.Start();
@@ -218,34 +133,10 @@ namespace RicherTextBoxDemo
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            RegisterForFileExtension(".arkospad", System.Reflection.Assembly.GetExecutingAssembly().Location);
-            
-
-            if(_zipFileName=="" || _zipFileName==null)
-                _zipFileName = Registry.getFilename();
-
-            if (_zipFileName != "")
-            {
-                tempDir = Path.GetTempPath();
-                String filePath = "";
-                do {
-                    filePath = RandomString(5);
-                } while (Directory.Exists(tempDir + "\\" + filePath));
-                tempDir = Path.GetTempPath() + "\\" + filePath;
-
-                try
-                {                    
-                    _filename = getXmlFromFilename(_zipFileName);
-                    loadFiles(_zipFileName);
-                   
-                    populateTreeview(_filename);
-                }catch(Exception ex)
-                {
-                    MessageBox.Show(this, "Error creating temp file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-
-            menuStrip1.Renderer = new NewColourRenderer();
+            treeView = new TreeControl.TreeView(treeView1);
+            Misc.Tools.RegisterForFileExtension(".arkospad", System.Reflection.Assembly.GetExecutingAssembly().Location);
+            new ArkosPadFiles.Files(treeView1).LoadInit(listView1,richerTextBox1);
+            menuStrip1.Renderer = new Misc.Tools.NewColourRenderer();
         }
 
         private void treeView1_MouseClick(object sender, MouseEventArgs e)
@@ -263,7 +154,7 @@ namespace RicherTextBoxDemo
         {
             setFormCaption();
             listView1.Items.Clear();
-            TreeItems.SelectedItem(this,data);
+            TreeItems.SelectedItem(this,listView1,treeView1,Globals.data);
         }
 
         private void treeView1_MouseUp(object sender, MouseEventArgs e)
@@ -274,409 +165,36 @@ namespace RicherTextBoxDemo
 
         private void addToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            New n = new New();
-            if(n.ShowDialog()==DialogResult.OK)
-            {
-                notSaved = true;
-                String name = n.mName;
-                bool found = false;
-
-                foreach(TreeNode n1 in treeView1.SelectedNode.Nodes)
-                {
-                    if (n1.Text == name)
-                        found = true;
-                }
-
-                if (!found)
-                {
-                    int weight = int.Parse(n.Weight);
-                    TreeItem ti = new TreeItem();
-                    ti.name = name;
-                    ti.weight = maxWeight + 1;
-                    maxWeight++;
-                    ti.data = "";
-                    int id = getNextID();
-                    data.Add(id.ToString(), ti);
-                    TreeNode sel = treeView1.SelectedNode;
-                    TreeNode newNode = new TreeNode();
-                    newNode.Name = name + id.ToString();
-                    newNode.Text = name;
-                    newNode.Tag = new XmlNodeData() { ID = id.ToString(), focus = false, weight = ti.weight };
-
-
-                    if (sel != null)
-                    {
-                        sel.Nodes.Add(newNode);
-                        sel.Expand();
-                    }
-                    else
-                    {
-                        treeView1.Nodes.Add(newNode);
-                        treeView1.ExpandAll();
-                    }
-
-                    if (isCloud)
-                    {
-                        Sync.UpdateOrAddNode(" ", ti.weight, newNode);
-                        treeView1.Nodes.Remove(newNode);
-                    }
-                }
-            }
-
-            if (_filename != "")
-            {
-                exportToXml(_filename);
-            }
+            new TreeItems().addItem(treeView1, richerTextBox1);
         }
 
         private void richerTextBox1_Leave(object sender, EventArgs e)
         {
-            TreeNode n = treeView1.SelectedNode;
-            if(n!=null && n.Tag!=null)
-            {
-                String tag = ((XmlNodeData)n.Tag).ID;
-                if (n.Tag!=null && tag != "1")
-                {
-                    TreeItem i = data[tag];
-                    if (richerTextBox1.Text.Trim().Length > 0)
-                    {
-                        if (i.data != richerTextBox1.Rtf)
-                        {
-                            i.data = richerTextBox1.Rtf;
-                            Sync.UpdateOrAddNode(data[((XmlNodeData)n.Tag).ID].data, data[((XmlNodeData)n.Tag).ID].weight, n);
-                        }
-                    }
-                    else
-                    {
-                        if (i.data != "")
-                        {
-                            i.data = "";
-                            Sync.UpdateOrAddNode(data[((XmlNodeData)n.Tag).ID].data, data[((XmlNodeData)n.Tag).ID].weight, n);
-                        }
-                    }
-
-                    i.data = richerTextBox1.Rtf;
-                    data[tag] = i;
-
-                    if (_filename != "")
-                    {
-                        exportToXml(_filename);
-                    }
-                }
-            }
-        }
-
-        public void moveFiles(String oldFile, String newFile)
-        {
-            String oldFileDir = Path.GetDirectoryName(oldFile)+"\\_dat";
-            String newFileDir = Path.GetDirectoryName(newFile) + "\\_dat";
-
-            if (Directory.Exists(oldFileDir))
-            {
-                try
-                {
-                    if (!Directory.Exists(newFileDir))
-                        Directory.CreateDirectory(newFileDir);
-
-                    foreach (String file in Directory.GetFiles(oldFileDir))
-                    {
-                        File.Copy(file, newFileDir + "\\" + Path.GetFileName(file));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(this, "Can't copy files.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    throw ex;
-                }
-            }
-        }
-
-        public String copyFile(String oldFile)
-        {
-            String newFilePath = "";
-            if (_filename == "")
-            {
-                MessageBox.Show(this,"Please save your project first.","Error",MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            else
-            {
-                String newFileDir = Path.GetDirectoryName(_filename) + "\\_dat";
-
-                if (!Directory.Exists(newFileDir))
-                    Directory.CreateDirectory(newFileDir);
-
-
-             
-                do
-                {
-                    newFilePath = newFileDir + "\\" + RandomString(20)+"."+Path.GetExtension(oldFile);
-                } while (File.Exists(newFilePath));
-
-                File.Copy(oldFile, newFilePath);
-            }
-            return newFilePath;
-        }
-
-        private static Random random = new Random();
-
-        public static string RandomString(int length)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
-        }
-        private bool notSaved = false;
-        public bool exportToXml(String m_filename="", bool removeFocus=false)
-        {
-            bool isCloudOld = isCloud;
-            isCloud = false;
-            TreeNode n = treeView1.SelectedNode;
-            if (n != null && n.Tag != null)
-            {                
-                TreeItem i = data[((XmlNodeData)n.Tag).ID];
-                if (richerTextBox1.Text.Trim().Length > 0)
-                    i.data = richerTextBox1.Rtf;
-                else
-                    i.data = "";
-                data[((XmlNodeData)n.Tag).ID] = i;
-            }
-
-            TreeView tv = treeView1;
-
-            SaveFileDialog dlg = new SaveFileDialog();
-            dlg.Title = "Save ArkosPad Document";
-            dlg.Filter = "ArkosPad Files (*.arkospad)|*.arkospad";
-            dlg.FileName = "New Project.arkospad";
-            dlg.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-
-            if ( m_filename!="" || dlg.ShowDialog() == DialogResult.OK)
-            {
-                
-                String filename = "";
-                if (m_filename != "")
-                {
-                    filename = m_filename;
-                }
-                else
-                {
-                    filename = dlg.FileName;
-                }
-
-                try
-                {
-                    
-                    if(!filename.EndsWith(".xml"))
-                    {
-
-
-
-                   
-                        String filePath = "";
-                        do
-                        {
-                            filePath = RandomString(5);
-                        } while (Directory.Exists(Path.GetTempPath() + "\\" + filePath));
-
-                        try
-                        {
-                            moveFiles(getXmlFromFilename(_zipFileName), Path.GetTempPath() + "\\" + filePath + "\\data.xml");
-                        }
-                        catch { }
-
-                        Directory.CreateDirectory(Path.GetTempPath() + "\\" + filePath);
-                        Directory.CreateDirectory(Path.GetTempPath() + "\\" + filePath + "\\_dat");
-                        /*if(tempDir!="")
-                            moveFiles(tempDir, Path.GetTempPath() + "\\" + filePath);*/
-                        
-                        tempDir = Path.GetTempPath() + "\\" + filePath;
-                     
-                        _zipFileName = filename;
-
-                        if (filename != _zipFileName)
-                        {
-                            exportToXml(getXmlFromFilename(filename));
-                            File.Copy(_zipFileName, filename, true);
-                            return true;
-                        }
-
-
-                        filename = getXmlFromFilename(filename);
-                        
-                    }
-                    else
-                    {
-                        notSaved = true;
-                    }
-
-                    if (!Directory.Exists(tempDir + "\\_dat"))
-                        Directory.CreateDirectory(tempDir + "\\_dat");
-                    StreamWriter sr = new StreamWriter(filename, false, System.Text.Encoding.UTF8);
-                    sr.WriteLine("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
-                    sr.WriteLine("<" + treeView1.Nodes[0].Text + ">");
-                    foreach (TreeNode node in tv.Nodes)
-                    {
-                        SaveLoad.saveNode(node.Nodes, sr, removeFocus,isCloudOld);
-                    }
-
-                    sr.WriteLine("</" + treeView1.Nodes[0].Text + ">");
-                    sr.Close();
-
-                    try
-                    {
-                        File.Delete(tempDir + "\\data.dat");
-                        DataStorage.SerializeNow(tempDir + "\\data.dat", data);
-                        Microsoft.Win32.RegistryKey key;
-                        key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("ArkosPad");
-                        key.SetValue("LastFile", _zipFileName);
-                        key.Close();
-                        this._filename = filename;
-                        setFormCaption();
-                        isCloud = isCloudOld;
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(this, "Can't save file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }catch(Exception ex)
-                {
-                    MessageBox.Show(this, "Can't save file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-            else
-            {
-                isCloud = isCloudOld;
-                return false;
-            }
-            isCloud = isCloudOld;
-            return false;
-        }
-
-        private void populateTreeview(String filename="")
-        {
-            richerTextBox1.File = filename;
-
-            OpenFileDialog dlg = new OpenFileDialog();
-           
-            OpenFile f = new OpenFile();
-            if (filename != ""|| f.ShowDialog()==DialogResult.OK )
-            {
-
-                isCloud = f.isCloud;
-             
-
-                if(f.isCloud)
-                {
-                    cloudSession = f.session;
-                    cloudURL = f.url;
-                    mainThread = new System.Threading.Thread(syncThread);
-                    mainThread.Start();
-                }
-                else
-                {
-                    treeView1.Nodes.Clear();
-                    bool mdlg = false;
-                    if (filename == "")
-                    {
-                        mdlg = true;
-                        filename = f.file;
-                        _zipFileName = filename;
-                        if (!isCloud)
-                            loadFiles(filename);
-                        filename = getXmlFromFilename(filename);
-                        richerTextBox1.File = filename;
-                        _filename = filename;
-                    }
-
-                    try
-                {       
-                    if (!File.Exists(tempDir + "\\data.dat")&&mdlg)
-                    {
-                        MessageBox.Show(this, ".dat file not found.", "Error");
-                    }
-                    else
-                    {
-                        data=DataStorage.DeSerializeNow(tempDir + "\\data.dat");
-                        XmlDocument xDoc = new XmlDocument();
-                        xDoc.Load(filename);
-                        treeView1.Nodes.Clear();
-                        treeView1.Nodes.Add(new
-                          TreeNode(xDoc.DocumentElement.Name));
-                        TreeNode tNode = new TreeNode();
-                        tNode = (TreeNode)treeView1.Nodes[0];
-                        new SaveLoad().addTreeNode(xDoc.DocumentElement, tNode,data,this.idInit);
-                        treeView1.ExpandAll();
-                        listView1.Clear();
-                        this._filename = filename;
-                        setFormCaption();
-
-                        foreach(TreeItem itm in data.Values)
-                        {
-                            if(itm.weight>maxWeight)
-                                    maxWeight=itm.weight;
-                        }
-                    }
-                }
-                catch (XmlException xExc)
-                {
-                    MessageBox.Show(xExc.Message);
-                }
-                catch (Exception ex) 
-                {
-                    MessageBox.Show(ex.Message);
-                }
-                }
-            }
-        }
-
-        
+            new TreeControl.TreeView(treeView1).loadTreeData(richerTextBox1);
+        }                          
 
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            tempDir = Path.GetTempPath();
-            String filePath = "";
-            do
-            {
-                filePath = RandomString(5);
-            } while (Directory.Exists(tempDir + "\\" + filePath));
-            tempDir = Path.GetTempPath() + "\\" + filePath;
-
-            populateTreeview();
-            setFormCaption();
-            try
-            {
-                          
-                Microsoft.Win32.RegistryKey key;
-                key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("ArkosPad");
-                key.SetValue("LastFile", _zipFileName);
-                key.Close();                
-                setFormCaption();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, "Can't open file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            new ArkosPadFiles.Files(treeView1).openFile(richerTextBox1,listView1);
         }
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            
-            exportToXml();           
-            saveFiles();
-            
+            new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1);
+            new ArkosPadFiles.Files(treeView1).saveFiles();            
         }
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (notSaved)
+            if (Globals.notSaved)
             {
                 DialogResult r = MessageBox.Show(this, "Do you want to save the project?", "Save Project", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
                 if (r == DialogResult.Yes)
                 {
-                    if (exportToXml(_filename))
+                    if (new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename))
                     {
-                        saveFiles();
+                        new ArkosPadFiles.Files(treeView1).saveFiles();
                         Application.Exit();
                     }
                 }
@@ -697,12 +215,12 @@ namespace RicherTextBoxDemo
             treeView1.Nodes.Add("Root");
             listView1.Clear();
             richerTextBox1.Text = "";
-            _filename = "";
-            _zipFileName = "";
-            tempDir = "";
-            data = new Dictionary<String, TreeItem>();
+            Globals._filename = "";
+            Globals._zipFileName = "";
+            Globals.tempDir = "";
+            Globals.data = new Dictionary<String, TreeItem>();
             setFormCaption();
-            notSaved = true;
+            Globals.notSaved = true;
         }
 
 
@@ -711,40 +229,34 @@ namespace RicherTextBoxDemo
         {
             if(treeView1.SelectedNode!=null&&treeView1.SelectedNode.Tag!=null)
             {
-                if (isCloud)
+                if (Globals.isCloud)
                 {
                     try
                     {
                         Sync.DeleteNode(treeView1.SelectedNode);
-                    }catch(Exception ex)
+                    }
+                    catch (Exception ex)
                     {
                         MessageBox.Show(this, "Please remove all subnodes first!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
                 else
-                    removeNode(treeView1.SelectedNode);
-                notSaved = true;
+                {
+                    new TreeControl.TreeView(treeView1).removeNode(treeView1.SelectedNode);
+                }
+                Globals.notSaved = true;
             }
 
-            if (_filename != "")
+            if (Globals._filename != "")
             {
-                notSaved = true;
-                exportToXml(_filename);
+                Globals.notSaved = true;
+                new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1, Globals._filename);
             }
-        }
-
-        private void removeNode(TreeNode node)
-        {
-            while (node.Nodes.Count > 0)
-                removeNode(node.Nodes[0]);
-            data.Remove(((XmlNodeData)node.Tag).ID);
-            node.Remove();
-            
         }
 
         private void renameToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            notSaved = true;
+            Globals.notSaved = true;
             treeView1.LabelEdit = true;
             treeView1.SelectedNode.BeginEdit();            
         }
@@ -756,25 +268,25 @@ namespace RicherTextBoxDemo
             {
                 String idx = ((XmlNodeData)treeView1.SelectedNode.Tag).ID;
                 treeView1.SelectedNode.Text = e.Label;
-                data[idx].name = e.Label;
+                Globals.data[idx].name = e.Label;
 
-                if (_filename != "")
+                if (Globals._filename != "")
                 {
-                    exportToXml(_filename);
+                    new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename);
                 }
             }
         }
 
-        private void setFormCaption()
+        public void setFormCaption()
         {
             String s1 = "ArkosPad v3.1  ";
             String s2 = "";
             String s3 = "";
-            if (!isCloud)
+            if (!Globals.isCloud)
             {
-                if (_zipFileName != null && _zipFileName != "")
+                if (Globals._zipFileName != null && Globals._zipFileName != "")
                 {
-                    s2 = "- " + _zipFileName + " ";
+                    s2 = "- " + Globals._zipFileName + " ";
                 }
             }
             else
@@ -800,83 +312,12 @@ namespace RicherTextBoxDemo
 
         private void exportToMindMapToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            TreeView tv = treeView1;
-
-            SaveFileDialog dlg = new SaveFileDialog();
-            dlg.Title = "Open .mm Document";
-            dlg.Filter = "Mindmap Files (*.mm)|*.mm";
-            dlg.FileName = Application.StartupPath + "\\export.mm";
-            if (dlg.ShowDialog() == DialogResult.OK)
-            {
-                String filename = "";
-                filename = dlg.FileName;
-
-                StreamWriter sr = new StreamWriter(filename, false, System.Text.Encoding.UTF8);
-                sr.Write(File.ReadAllText("templates\\mm_header.mm"));
-                SaveLoad.exportNodeToMindmap(tv.SelectedNode.Nodes, sr);
-                
-                sr.Write(File.ReadAllText("templates\\mm_footer.mm"));
-                sr.Close();
-                MessageBox.Show(this, "Export successfull.", "Success");
-            }
+            ArkosPadFiles.MindMap.exportToMindMap(treeView1);
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            AddFileDialog dlg= new AddFileDialog();
-            if(dlg.ShowDialog()== DialogResult.OK)
-            {
-                String caption = dlg.caption;
-                String file = dlg.file;
-                if(treeView1.SelectedNode!=null)
-                { 
-                TreeNode n = treeView1.SelectedNode;
-                if (n.Tag != null)
-                {
-                        String tag = ((XmlNodeData)n.Tag).ID;
-                    if (data.ContainsKey(tag))
-                    {
-                        //    if (data.Values.Where(a => a.name == caption).Count() > 0)
-                          //  {
-                            //    MessageBox.Show(this, "An item with that caption does allready exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                           // }
-                            //else
-                            {
-                                try
-                                {
-                                    if (!isCloud)
-                                    {
-                                        String m_data = data[tag].data;
-                                        String origName = file;
-                                        file = copyFile(file);
-                                        if (file != "")
-                                        {
-                                            FileItem item = new FileItem() { caption = Path.GetFileName(origName), filepath = Path.GetFileName(file) };
-                                            listView1.Items.Add(item.caption);
-
-
-                                            data[tag].files.Add(item);
-
-
-                                            if (_filename != "")
-                                            {
-                                                exportToXml(_filename);
-                                            }
-                                        }                                   
-                                    }
-                                    else
-                                    {
-                                        Sync.UploadFile(file, int.Parse(tag));
-                                    }
-                                }
-                                catch(Exception ex) {
-                                    MessageBox.Show(this, "Unable to add file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            new Attachments.Files(listView1, treeView1).addFile(richerTextBox1);
         }
     
         private void listView1_SelectedIndexChanged(object sender, EventArgs e)
@@ -887,72 +328,12 @@ namespace RicherTextBoxDemo
 
         private void listView1_DoubleClick(object sender, EventArgs e)
         {
-            TreeNode n = treeView1.SelectedNode;
-            if (n != null)
-            {
-                String fileName = "";
-                if (n.Tag != null)
-                {
-                    String tag = ((XmlNodeData)n.Tag).ID;
-                    if (data.ContainsKey(tag))
-                    {
-                        fileName = data[tag].files.Where(a => a.caption == listView1.SelectedItems[0].Text).First().filepath;
-                        fileName = Path.GetDirectoryName(_filename) + "\\_dat" + "\\" + fileName;
-                        if (File.Exists(fileName))
-                        {
-                            Process p = new Process();
-                            p.StartInfo = new ProcessStartInfo()
-                            {
-                                UseShellExecute = true,
-                                FileName = fileName
-                            };
-
-                            p.Start();
-                        }
-                        else
-                        {
-                            MessageBox.Show(this, "The file does not exist.");
-                        }
-                    }
-                }
-            }
+            new Attachments.Files(listView1, treeView1).runFile();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            try
-            {
-                TreeNode n = treeView1.SelectedNode;
-                if (n.Tag != null)
-                {
-                    String tag = ((XmlNodeData)n.Tag).ID;
-
-                    if (isCloud)
-                    {
-                        if (listView1.SelectedItems.Count > 0)
-                        {
-                            int idFile = (int)listView1.SelectedItems[0].Tag;
-                            Sync.DeleteFile(idFile);
-                        }
-                    }
-                    else
-                    {
-
-                        if (data.ContainsKey(tag))
-                        {
-                            IEnumerable<FileItem> items = data[tag].files.Where(a => a.caption == selectedFile);
-                            if (items.Count() > 0)
-                            {
-                                listView1.Items.Remove(listView1.SelectedItems[0]);
-                                data[tag].files.Remove(items.First());
-                                Files.updateFileList(this);
-                                this.exportToXml(_filename);
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
+            new Attachments.Files(listView1, treeView1).removeFile(richerTextBox1);
         }
 
         private void richerTextBox1_Load(object sender, EventArgs e)
@@ -962,36 +343,15 @@ namespace RicherTextBoxDemo
 
         private void saveToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            TreeNode n = treeView1.SelectedNode;
-            if (n != null && n.Tag != null)
-            {
-                String tag = ((XmlNodeData)n.Tag).ID;
-                TreeItem i = data[tag];
-                if (richerTextBox1.Text.Trim().Length > 0)
-                    i.data = richerTextBox1.Rtf;
-                else
-                    i.data = "";
-                data[tag] = i;
-
-                if (_filename != "")
-                {
-                    exportToXml(_filename);
-                }
-                else
-                {
-                    exportToXml();
-                }
-                saveFiles();
-                SystemSounds.Beep.Play();
-            }
+           new ArkosPadFiles.DataFiles.SaveLoad(treeView1).saveFile(richerTextBox1);
         }
 
         private void upToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (treeView1.SelectedNode != null && treeView1.SelectedNode.Tag != null)
             {
-                moveNodeUp(treeView1.SelectedNode);                
-                notSaved = true;
+                TreeControl.TreeNodes.moveNodeUp(treeView1.SelectedNode);                
+                Globals.notSaved = true;
             }            
         }
 
@@ -999,173 +359,20 @@ namespace RicherTextBoxDemo
         {
             if (treeView1.SelectedNode != null && treeView1.SelectedNode.Tag != null)
             {
-                moveNodeDown(treeView1.SelectedNode);
-                notSaved = true;
+                TreeControl.TreeNodes.moveNodeDown(treeView1.SelectedNode);
+                Globals.notSaved = true;
             }
         }
 
-        private void moveNodeUp(TreeNode node)
-        {
-            String origID = ((XmlNodeData)node.Tag).ID;
-            TreeItem origData = data[origID];
+     
 
-            int iPreviousID = -1;
-            TreeNode previousNode=null;
-
-            if (node.Index >= 1)
-            {
-                previousNode = node.Parent.Nodes[node.Index - 1];
-
-                iPreviousID = int.Parse(((XmlNodeData)previousNode.Tag).ID);
-
-                if (iPreviousID != -1)
-                {
-                    int tmpWeight = data[origID].weight;
-                    data[origID].weight = data[iPreviousID.ToString()].weight;
-                    data[iPreviousID.ToString()].weight = tmpWeight;
-                    /*
-                    if (treeView1.SelectedNode.Parent.Nodes.ContainsKey(iPreviousID.ToString()))
-                    {
-                        TreeItem previousData = data[iPreviousID.ToString()];
-
-
-                        data.Remove(iPreviousID.ToString());
-                        data.Remove(origID);
-
-                        data.Add(origID, previousData);
-                        data.Add(iPreviousID.ToString(), origData);
-
-                        int tmpWeight = data[origID].weight;
-                        data[origID].weight = data[iPreviousID.ToString()].weight;
-                        data[iPreviousID.ToString()].weight = tmpWeight;
-                    }*/
-
-                    if (isCloud)
-                    {
-                        Sync.UpdateOrAddNode(data[origID].data, data[origID].weight, node);
-                        Sync.UpdateOrAddNode(data[iPreviousID.ToString()].data, data[iPreviousID.ToString()].weight, node.Parent.Nodes[node.Index - 1]);
-                    }
-                    else
-                    {
-                        MoveUp(node);
-                    }
-                }
-
-
-
-                //MoveUp(treeView1.SelectedNode);
-                notSaved = true;
-            }
-            //exportToXml(_filename);
-        }
-
-        private void moveNodeDown(TreeNode node)
-        {
-            String origID = ((XmlNodeData)node.Tag).ID;
-            TreeItem origData = data[origID];
-
-            int iPreviousID = -1;
-            TreeNode previousNode = null;
-
-            if (node.Parent.Nodes.Count >= node.Index + 1)
-            {
-                previousNode = node.Parent.Nodes[node.Index + 1];
-
-                iPreviousID = int.Parse(((XmlNodeData)previousNode.Tag).ID);
-
-                if (iPreviousID != -1)
-                {
-                    int tmpWeight = data[origID].weight;
-                    data[origID].weight = data[iPreviousID.ToString()].weight;
-                    data[iPreviousID.ToString()].weight = tmpWeight;
-                    /*
-                    if (treeView1.SelectedNode.Parent.Nodes.ContainsKey(iPreviousID.ToString()))
-                    {
-                        TreeItem previousData = data[iPreviousID.ToString()];
-
-
-                        data.Remove(iPreviousID.ToString());
-                        data.Remove(origID);
-
-                        data.Add(origID, previousData);
-                        data.Add(iPreviousID.ToString(), origData);
-
-                        int tmpWeight = data[origID].weight;
-                        data[origID].weight = data[iPreviousID.ToString()].weight;
-                        data[iPreviousID.ToString()].weight = tmpWeight;
-                    }*/
-                }
-
-
-                if (isCloud)
-                {
-                    Sync.UpdateOrAddNode(data[origID].data, data[origID].weight, node);
-                    Sync.UpdateOrAddNode(data[iPreviousID.ToString()].data, data[iPreviousID.ToString()].weight, node.Parent.Nodes[node.Index + 1]);
-                }
-                else
-                {
-                    MoveDown(node);
-                }
-                notSaved = true;
-            }
-            // exportToXml(_filename);
-        }
-        //https://stackoverflow.com/questions/2203975/move-node-in-tree-up-or-down
-        public  void MoveUp(TreeNode node)
-        {
-            TreeNode parent = node.Parent;
-            TreeView view = node.TreeView;
-                 if (parent != null)
-                 {
-                     int index = parent.Nodes.IndexOf(node);
-                     if (index > 0)
-                     {
-                         parent.Nodes.RemoveAt(index);
-                         parent.Nodes.Insert(index - 1, node);
-                     }
-                 }
-                 else if (node.TreeView.Nodes.Contains(node)) //root node
-                 {
-                     int index = view.Nodes.IndexOf(node);
-                     if (index > 0)
-                     {
-                         view.Nodes.RemoveAt(index);
-                         view.Nodes.Insert(index - 1, node);
-                     }
-                 }           
-          
-        }
-
-        public  void MoveDown(TreeNode node)
-        {
-            TreeNode parent = node.Parent;
-            TreeView view = node.TreeView;
-            if (parent != null)
-            {
-                int index = parent.Nodes.IndexOf(node);
-                if (index < parent.Nodes.Count - 1)
-                {
-                    parent.Nodes.RemoveAt(index);
-                    parent.Nodes.Insert(index + 1, node);
-                }
-            }
-            else if (view != null && view.Nodes.Contains(node)) //root node
-            {
-                int index = view.Nodes.IndexOf(node);
-                if (index < view.Nodes.Count - 1)
-                {
-                    view.Nodes.RemoveAt(index);
-                    view.Nodes.Insert(index + 1, node);
-                }
-            }
-            Sync.UpdateOrAddNode(data[((XmlNodeData)node.Tag).ID].data, data[((XmlNodeData)node.Tag).ID].weight, node);
-        }
+       
 
         private void MainForm_KeyUp(object sender, KeyEventArgs e)
         {
             if(e.KeyCode == Keys.S && e.Modifiers==Keys.Control)
             {
-                exportToXml();
+                new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1);
             }
         }
 
@@ -1173,7 +380,7 @@ namespace RicherTextBoxDemo
         {
             if (e.KeyCode == Keys.S && e.Modifiers == Keys.Control)
             {
-                exportToXml();
+                new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1);
             }
         }
 
@@ -1184,7 +391,7 @@ namespace RicherTextBoxDemo
                 richerTextBox1.save = false;
                 try                      
                 {
-                    this.Invoke(new Action(() => { exportToXml(_filename); saveFiles(); })) ;
+                    this.Invoke(new Action(() => { new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1);  new ArkosPadFiles.Files(treeView1).saveFiles(); })) ;
                     SystemSounds.Beep.Play();
 
                 }
@@ -1195,7 +402,7 @@ namespace RicherTextBoxDemo
 
             if (this.richerTextBox1.linkClicked != null)
             {
-                this.Invoke(new Action(() => { exportToXml(_filename); saveFiles(); }));
+                this.Invoke(new Action(() => { new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1, Globals._filename); new ArkosPadFiles.Files(treeView1).saveFiles(); }));
                 Process.Start("arkospad:" + this.richerTextBox1.linkClicked.ToString());
             }
         }
@@ -1210,12 +417,12 @@ namespace RicherTextBoxDemo
 
             String data = ((XmlNodeData)treeView1.SelectedNode.Tag).ID;
             if (data != null) { 
-            bool oldFocus= MainForm.data[data].focus;
+            bool oldFocus= Globals.data[data].focus;
             removeFocus();
 
-            MainForm.data[data].focus = !oldFocus;
-            exportToXml(_filename);
-            notSaved = true;
+            Globals.data[data].focus = !oldFocus;
+            new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1);
+            Globals.notSaved = true;
             }
         }
 
@@ -1224,31 +431,7 @@ namespace RicherTextBoxDemo
 
         }
 
-        const string UriScheme = "arkospad";
-        const string FriendlyName = "ArkosPad Tree Reference";
-
-        public static void RegisterUriScheme()
-        {
-            using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("SOFTWARE\\Classes\\" + UriScheme))
-            {
-                // Replace typeof(App) by the class that contains the Main method or any class located in the project that produces the exe.
-                // or replace typeof(App).Assembly.Location by anything that gives the full path to the exe
-                string applicationLocation = typeof(MainForm).Assembly.Location;
-
-                key.SetValue("", "URL:" + FriendlyName);
-                key.SetValue("URL Protocol", "");
-
-                using (var defaultIcon = key.CreateSubKey("DefaultIcon"))
-                {
-                    defaultIcon.SetValue("", applicationLocation + ",1");
-                }
-
-                using (var commandKey = key.CreateSubKey(@"shell\open\command"))
-                {
-                    commandKey.SetValue("", "\"" + applicationLocation + "\" \"%1\"");
-                }
-            }
-        }
+       
 
         private void richerTextBox1_MouseClick(object sender, MouseEventArgs e)
         {
@@ -1257,14 +440,14 @@ namespace RicherTextBoxDemo
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (notSaved)
+            if (Globals.notSaved)
             {
                 DialogResult r = MessageBox.Show(this, "Do you want to save the project?", "Save Project", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
                 if (r == DialogResult.Yes)
                 {
-                    if (exportToXml(_filename))
+                    if (new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1))
                     {
-                        saveFiles();
+                        new ArkosPadFiles.Files(treeView1).saveFiles();
                         closing = true;
                         Application.Exit();
                     }
@@ -1292,16 +475,7 @@ namespace RicherTextBoxDemo
         }
 
 
-        private static void RegisterForFileExtension(string extension, string applicationPath)
-        {
-            RegistryKey FileReg = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("Software\\Classes\\" + extension);
-            FileReg.CreateSubKey("shell\\open\\command").SetValue("", $"\"{applicationPath}\" \"%1\"");
-            FileReg.Close();
-
-            SHChangeNotify(0x08000000, 0x0000, IntPtr.Zero, IntPtr.Zero);
-        }
-        [DllImport("shell32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+   
 
         private void listView1_MouseClick(object sender, MouseEventArgs e)
         {
@@ -1339,40 +513,10 @@ namespace RicherTextBoxDemo
                     TreeNode n = treeView1.SelectedNode;
                     if (n != null)
                     {
-                        String fileName = "";
+                        
                         if (n.Tag != null)
                         {
-                            String tag = ((XmlNodeData)n.Tag).ID;
-                            if (data.ContainsKey(tag))
-                            {
-                                if (!isCloud)
-                                {
-
-                                    fileName = data[tag].files.Where(a => a.caption == listView1.SelectedItems[0].Text).First().filepath;
-                                    fileName = Path.GetDirectoryName(_filename) + "\\_dat" + "\\" + fileName;
-                                    SaveFileDialog saveFileDialog = new SaveFileDialog();
-                                    saveFileDialog.Title = "Save " + Path.GetExtension(fileName) + " Document";
-                                    saveFileDialog.Filter = Path.GetExtension(fileName) + " Files (*" + Path.GetExtension(fileName) + ")|*" + Path.GetExtension(fileName);
-                                    saveFileDialog.FileName = Path.GetFileName(Application.StartupPath + "\\export_file" + Path.GetExtension(fileName));
-                                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                                    {
-                                        File.Copy(Path.GetDirectoryName(_filename) + "\\_dat" + "\\" + Path.GetFileName(fileName), saveFileDialog.FileName);
-                                        MessageBox.Show(this, "File saved as\n" + saveFileDialog.FileName, "File saved.", MessageBoxButtons.OK, MessageBoxIcon.None);
-                                    }
-                                }
-                                else
-                                {
-                                    SaveFileDialog saveFileDialog = new SaveFileDialog();
-                                    saveFileDialog.Title = "Save " + Path.GetExtension(fileName) + " Document";
-                                    saveFileDialog.Filter = Path.GetExtension(fileName) + " Files (*" + Path.GetExtension(fileName) + ")|*" + Path.GetExtension(fileName);
-                                    saveFileDialog.FileName = Path.GetFileName(Application.StartupPath + "\\export_file" + Path.GetExtension(fileName));
-                                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                                    {
-                                        Sync.DownloadFile((int)listView1.SelectedItems[0].Tag, saveFileDialog.FileName);
-                                        MessageBox.Show(this, "File saved as\n" + saveFileDialog.FileName, "File saved.", MessageBoxButtons.OK, MessageBoxIcon.None);
-                                    }
-                                }
-                            }
+                            new Attachments.Files(listView1,treeView1).exportFile(n);
                         }
                     }
                 }
@@ -1410,35 +554,7 @@ namespace RicherTextBoxDemo
         {
 
         }
-        private class NewColourRenderer : ToolStripProfessionalRenderer
-        {
-            public NewColourRenderer() : base(new MyColours()) { }
-        }
-        private class MyColours : ProfessionalColorTable
-        {
-            public override Color MenuItemSelected
-            {
-                get { return Color.Black; }
-            }
-            public override Color MenuItemSelectedGradientBegin
-            {
-                get { return Color.Black; }
-            }
-            public override Color MenuItemSelectedGradientEnd
-            {
-                get { return Color.Black; }
-            }
-
-            public override Color MenuItemPressedGradientBegin
-            {
-                get { return Color.Black; }
-            }
-
-            public override Color MenuItemPressedGradientEnd
-            {
-                get { return Color.Black; }
-            }
-        }
+      
 
         private void pictureBox2_Click(object sender, EventArgs e)
         {
@@ -1452,50 +568,18 @@ namespace RicherTextBoxDemo
 
         private void uploadToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!isCloud)
-            {
-                if (MessageBox.Show(this, "Warning! This will delete all content saved in the cloud!\nContinue?", "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.Yes)
-                {
-                    if (!isCloud)
-                    {
-                        OpenFileDialog dlg = new OpenFileDialog();
-
-                        OpenFile f = new OpenFile(true);
-                        if (f.ShowDialog() == DialogResult.OK)
-                        {
-
-                            isCloud = f.isCloud;
-
-                            if (f.isCloud)
-                            {
-                                cloudSession = f.session;
-                                cloudURL = f.url;
-                            }
-                        }
-
-                        if (isCloud)
-                        {
-                            Sync.Clear();
-                            foreach (TreeNode node in treeView1.Nodes)
-                            {
-                                StreamWriter sr = new StreamWriter(".\\tmp", false, System.Text.Encoding.UTF8);
-                                SaveLoad.saveNode(node.Nodes, sr, false);
-                            }
-                            mainThread = new System.Threading.Thread(syncThread);
-                            mainThread.Start();
-                        }
-                    }
-                }
-            }
-            else
-            {
-                MessageBox.Show(this, "You are allready connected to the cloud.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            new ArkosPadFiles.DataFiles.SaveLoad(treeView1).uploadToCloud();
         }
 
         private void toolStripMenuItem9_Click(object sender, EventArgs e)
         {
 
+        }
+
+        public void runMainThread()
+        {
+            mainThread = new System.Threading.Thread(syncThread);
+            mainThread.Start();
         }
     }
 }

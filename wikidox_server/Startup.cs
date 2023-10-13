@@ -32,8 +32,8 @@ namespace WikiDoxServer
         public void ConfigureServices(IServiceCollection services)
         {
 
-            String dbConf = "Server=localhost;Database=arkospad;UID=arkospad;Password=Bl4f4s3L12345";
-           /* try
+            String dbConf = "";
+            try
             {                
                 if (File.Exists("db.settings.conf"))
                     dbConf = File.ReadAllText("db.settings.conf").Replace("\r","").Replace("\n","");
@@ -42,7 +42,7 @@ namespace WikiDoxServer
                 System.Console.WriteLine("Could not load db.settings.conf");
                 throw new Exception();
             }
-           */
+           
 
             try
             {

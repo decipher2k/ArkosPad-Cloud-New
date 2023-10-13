@@ -6,22 +6,22 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RicherTextBoxDemo
+namespace RicherTextBoxDemo.ArkosPadFiles
 {
     public class DataStorage
     {
-        public static void SerializeNow(String file, Dictionary<String, TreeItem> data)
+        public static void SerializeNow(string file, Dictionary<string, TreeItem> data)
         {
             Stream s = File.OpenWrite(file);
             BinaryFormatter b = new BinaryFormatter();
             b.Serialize(s, data);
             s.Close();
         }
-        public static Dictionary<String, TreeItem> DeSerializeNow(String file)
+        public static Dictionary<string, TreeItem> DeSerializeNow(string file)
         {
             Stream s = File.OpenRead(file);
             BinaryFormatter b = new BinaryFormatter();
-            Dictionary<String, TreeItem> data = (Dictionary<String, TreeItem>)b.Deserialize(s);
+            Dictionary<string, TreeItem> data = (Dictionary<string, TreeItem>)b.Deserialize(s);
             s.Close();
             return data;
         }

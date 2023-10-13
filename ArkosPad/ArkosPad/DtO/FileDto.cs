@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RicherTextBoxDemo
+namespace RicherTextBoxDemo.DtO
 {
     public class FileDto
     {
@@ -14,7 +14,7 @@ namespace RicherTextBoxDemo
         }
 
         public class Files
-        {            
+        {
             public int id { get; set; }
             public int idNode { get; set; }
             public string fileName { get; set; }

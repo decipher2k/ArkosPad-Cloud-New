@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RicherTextBoxDemo
+namespace RicherTextBoxDemo.DtO
 {
     public class XmlNodeData
     {
-        public String ID = "";
+        public string ID = "";
         public bool focus = false;
         public int weight = 0;
     }

@@ -7,7 +7,7 @@ namespace RicherTextBoxDemo
     [Serializable]
     public class TreeItem
     {
-        public static int maxWeight = 0;
+        public static int _maxWeight = 0;
         public String name="";
         public int weight=0;
         public String data = "";

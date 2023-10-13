@@ -71,7 +71,7 @@ namespace RicherTextBoxDemo
             password = textBox4.Text;
             if (url!="" && username!="" && password!="") {
                 var request = (HttpWebRequest)WebRequest.Create(url+"/api/Session/Login");
-                var dto = new UserDataDto();
+                var dto = new DtO.UserDataDto();
                 dto.username = username;
                 dto.password = password;
                 var data = Encoding.ASCII.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(dto));

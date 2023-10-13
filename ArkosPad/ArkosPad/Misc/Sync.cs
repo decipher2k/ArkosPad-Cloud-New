@@ -1,4 +1,6 @@
 ﻿using Microsoft.VisualBasic.Logging;
+using RicherTextBoxDemo.ArkosPadFiles;
+using RicherTextBoxDemo.DtO;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -57,8 +59,8 @@ namespace RicherTextBoxDemo
             else
                 nvc.Add("fileName", fileName);
 
-            nvc.Add("session", MainForm.cloudSession);
-            HttpUploadFile(MainForm.cloudURL + "/api/Files/Upload", file, "file", "application/octet-stream", nvc);
+            nvc.Add("session", Globals.cloudSession);
+            HttpUploadFile(Globals.cloudURL + "/api/Files/Upload", file, "file", "application/octet-stream", nvc);
         }
 
         public static void HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection nvc)
@@ -126,7 +128,7 @@ namespace RicherTextBoxDemo
 
         public static List<FileDto.fileCapsule> GetFiles(int idNode)
         {
-            IdDto id = new IdDto() { id = idNode, session = MainForm.cloudSession };
+            IdDto id = new IdDto() { id = idNode, session = Globals.cloudSession };
             String data = Newtonsoft.Json.JsonConvert.SerializeObject(id);
             String content = HttpPost(data, "/api/Files/GetFiles");
             return Newtonsoft.Json.JsonConvert.DeserializeObject<List<FileDto.fileCapsule>>(content);
@@ -135,19 +137,19 @@ namespace RicherTextBoxDemo
 
         public static void DeleteFile(int idFile)
         {
-            IdDto id = new IdDto() { id = idFile, session = MainForm.cloudSession };
+            IdDto id = new IdDto() { id = idFile, session = Globals.cloudSession };
             String data = Newtonsoft.Json.JsonConvert.SerializeObject(id);
             HttpPost(data, "/api/Files/Delete");
         }
 
         public static void DownloadFile(int idFile, String outPath)
         {
-            IdDto id = new IdDto() { id = idFile, session = MainForm.cloudSession };
+            IdDto id = new IdDto() { id = idFile, session = Globals.cloudSession };
             String data = Newtonsoft.Json.JsonConvert.SerializeObject(id);
 
             //if (MainForm.isCloud)
             {
-                var request = (HttpWebRequest)WebRequest.Create(MainForm.cloudURL + "/api/Files/Download");
+                var request = (HttpWebRequest)WebRequest.Create(Globals.cloudURL + "/api/Files/Download");
                 request.Method = "POST";
                 request.ContentType = "text/json";
                 request.ContentLength = data.Length;
@@ -175,11 +177,11 @@ namespace RicherTextBoxDemo
         {
             treeView.Nodes[0].Nodes.Clear();
 
-            String content = Get(MainForm.cloudURL+"/api/Sync/GetNodes?session="+MainForm.cloudSession);
+            String content = Get(Globals.cloudURL+"/api/Sync/GetNodes?session="+Globals.cloudSession);
             List<SyncDTO> list = new List<SyncDTO>();
             SyncDTO root = Newtonsoft.Json.JsonConvert.DeserializeObject<SyncDTO>(content);
             
-            Dictionary<String, TreeItem> ret = SaveLoad.addTreeNodeSync(root, treeView.Nodes[0], new Dictionary<string, TreeItem>());
+            Dictionary<String, TreeItem> ret = Nodes.addTreeNodeSync(root, treeView.Nodes[0], new Dictionary<string, TreeItem>());
             treeView.ExpandAll();
             return ret;
         }
@@ -187,7 +189,7 @@ namespace RicherTextBoxDemo
         public static void DeleteNode(TreeNode item)
         {
             PageDto pageDto = new PageDto();
-            pageDto.session = MainForm.cloudSession;
+            pageDto.session = Globals.cloudSession;
             pageDto.url = getUrlFromTreeNode(item);
 
             HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(pageDto), "/api/MarkdownPage/DeletePage");
@@ -195,8 +197,8 @@ namespace RicherTextBoxDemo
 
         public static void Clear()
         {
-            if(MainForm.isCloud)
-                Get(MainForm.cloudURL + "/api/Sync/Clear?session=" + MainForm.cloudSession);
+            if(Globals.isCloud)
+                Get(Globals.cloudURL + "/api/Sync/Clear?session=" + Globals.cloudSession);
         }
 
         public static String getUrlFromTreeNode(TreeNode node)
@@ -219,7 +221,7 @@ namespace RicherTextBoxDemo
             pageDto.url = getUrlFromTreeNode(item);
             pageDto.text = text;            
             pageDto.weight = weight;
-            pageDto.session= MainForm.cloudSession;
+            pageDto.session= Globals.cloudSession;
             HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(pageDto), "/api/MarkdownPage/SaveMarkupPage");
         }
 
@@ -229,7 +231,7 @@ namespace RicherTextBoxDemo
             //if (MainForm.isCloud)
             {
 
-                var request = (HttpWebRequest)WebRequest.Create(MainForm.cloudURL + path);
+                var request = (HttpWebRequest)WebRequest.Create(Globals.cloudURL + path);
                 request.Method = "POST";
                 request.ContentType = "text/json";
                 request.ContentLength = data.Length;

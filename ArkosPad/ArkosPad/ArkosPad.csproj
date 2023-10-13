@@ -65,17 +65,22 @@
     <Compile Include="AddFileDialog.Designer.cs">
       <DependentUpon>AddFileDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="DataStorage.cs" />
-    <Compile Include="FileDto.cs" />
-    <Compile Include="FileItem.cs" />
-    <Compile Include="Files.cs" />
-    <Compile Include="IdDto.cs" />
+    <Compile Include="ArkosPadFiles\DataFiles\Files.cs" />
+    <Compile Include="ArkosPadFiles\DataFiles\SaveLoad.cs" />
+    <Compile Include="ArkosPadFiles\DataStorage.cs" />
+    <Compile Include="ArkosPadFiles\MindMap.cs" />
+    <Compile Include="DtO\FileDto.cs" />
+    <Compile Include="Globals.cs" />
+    <Compile Include="MainData\FileItem.cs" />
+    <Compile Include="Attachments\Files.cs" />
+    <Compile Include="DtO\IdDto.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Misc\Tools.cs" />
     <Compile Include="New.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -88,17 +93,19 @@
     <Compile Include="OpenFile.Designer.cs">
       <DependentUpon>OpenFile.cs</DependentUpon>
     </Compile>
-    <Compile Include="PageDto.cs" />
+    <Compile Include="DtO\PageDto.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Registry.cs" />
-    <Compile Include="SaveLoad.cs" />
-    <Compile Include="Sync.cs" />
-    <Compile Include="SyncDTO.cs" />
-    <Compile Include="TreeItem.cs" />
-    <Compile Include="TreeItems.cs" />
-    <Compile Include="TreeNodeData.cs" />
-    <Compile Include="UserDataDto.cs" />
+    <Compile Include="Misc\Registry.cs" />
+    <Compile Include="ArkosPadFiles\Nodes.cs" />
+    <Compile Include="Misc\Sync.cs" />
+    <Compile Include="DtO\SyncDTO.cs" />
+    <Compile Include="MainData\TreeItem.cs" />
+    <Compile Include="TreeControl\TreeItems.cs" />
+    <Compile Include="DtO\TreeNodeData.cs" />
+    <Compile Include="DtO\UserDataDto.cs" />
+    <Compile Include="TreeControl\TreeNodes.cs" />
+    <Compile Include="TreeControl\TreeView.cs" />
     <EmbeddedResource Include="AddFileDialog.resx">
       <DependentUpon>AddFileDialog.cs</DependentUpon>
       <SubType>Designer</SubType>
