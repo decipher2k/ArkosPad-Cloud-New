@@ -421,7 +421,7 @@ namespace RicherTextBoxDemo
             removeFocus();
 
             Globals.data[data].focus = !oldFocus;
-            new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1);
+            new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename);
             Globals.notSaved = true;
             }
         }
