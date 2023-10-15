@@ -37,7 +37,8 @@ namespace RicherTextBoxDemo.TreeControl
                         if (i.data != richerTextBox1.Rtf)
                         {
                             i.data = richerTextBox1.Rtf;
-                            Sync.UpdateOrAddNode(Globals.data[((XmlNodeData)n.Tag).ID].data, Globals.data[((XmlNodeData)n.Tag).ID].weight, n);
+                            if(Globals.isCloud)
+                                Sync.UpdateOrAddNode(Globals.data[((XmlNodeData)n.Tag).ID].data, Globals.data[((XmlNodeData)n.Tag).ID].weight, n);
                         }
                     }
                     else
@@ -45,7 +46,8 @@ namespace RicherTextBoxDemo.TreeControl
                         if (i.data != "")
                         {
                             i.data = "";
-                            Sync.UpdateOrAddNode(Globals.data[((XmlNodeData)n.Tag).ID].data, Globals.data[((XmlNodeData)n.Tag).ID].weight, n);
+                            if (Globals.isCloud)
+                                Sync.UpdateOrAddNode(Globals.data[((XmlNodeData)n.Tag).ID].data, Globals.data[((XmlNodeData)n.Tag).ID].weight, n);
                         }
                     }
 

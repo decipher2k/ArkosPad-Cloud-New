@@ -505,7 +505,7 @@
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(700, 12);
             this.label4.TabIndex = 21;
-            this.label4.Text = "ArkosPad v3.1";
+            this.label4.Text = "ArkosPad v3.2";
             this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.label4.MouseDown += new System.Windows.Forms.MouseEventHandler(this.label4_MouseDown);
             // 

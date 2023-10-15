@@ -279,7 +279,7 @@ namespace RicherTextBoxDemo
 
         public void setFormCaption()
         {
-            String s1 = "ArkosPad v3.1  ";
+            String s1 = "ArkosPad v3.2  ";
             String s2 = "";
             String s3 = "";
             if (!Globals.isCloud)
