@@ -73,8 +73,9 @@ namespace RicherTextBoxDemo.ArkosPadFiles.DataFiles
                             Sync.Clear();
                             foreach (TreeNode node in treeView1.Nodes)
                             {
-                                StreamWriter sr = new StreamWriter(".\\tmp", false, System.Text.Encoding.UTF8);
+                                StreamWriter sr = new StreamWriter(Globals.tempDir+"\\..\\tmp",false, System.Text.Encoding.UTF8);
                                 Nodes.saveNode(node.Nodes, sr, false);
+                                sr.Close();
                             }
                             MainForm.instance.runMainThread();
                         }

@@ -59,7 +59,7 @@ namespace RicherTextBoxDemo.ArkosPadFiles
         {
             foreach (TreeNode node in tnc)
             {
-                if (Globals.isCloud || importFiles)
+                    if (Globals.isCloud || importFiles)
                 {
                     if (!importFiles)
                     {
@@ -145,15 +145,18 @@ namespace RicherTextBoxDemo.ArkosPadFiles
                 //Loop through the child nodes
                 {
                     String id;
-                    if (xmlNode.Name != "Root")
+      
+                    xNode = xmlNode.ChildNodes[x];
+
+                    if (xNode.Name != "Root")
                     {
-                        id = xmlNode.Name.Replace("ID", "");
+                        id = xNode.Name.Replace("ID", "");
                     }
                     else
                     {
                         id = "1";
                     }
-                    xNode = xmlNode.ChildNodes[x];
+
                     TreeNode n = new TreeNode(xNode.Attributes[0].Value);
                     n.Tag = new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = Globals._maxWeight+1 };
                     Globals._maxWeight++;
@@ -232,7 +235,8 @@ namespace RicherTextBoxDemo.ArkosPadFiles
             }
 
             item.focus = xmlNode.focus;
-            data.Add(xmlNode.ID, item);
+            if(xmlNode.ID!="1")
+                data.Add(xmlNode.ID, item);
 
 
             if (xmlNode.children.Count>0) //The current node has children

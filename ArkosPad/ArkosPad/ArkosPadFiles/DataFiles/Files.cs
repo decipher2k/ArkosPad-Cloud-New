@@ -130,7 +130,7 @@ namespace RicherTextBoxDemo.ArkosPadFiles
             bool isCloudOld = Globals.isCloud;
             Globals.isCloud = false;
             TreeNode n = treeView1.SelectedNode;
-            if (n != null && n.Tag != null)
+            if (n != null && n.Tag != null && ((XmlNodeData)n.Tag).ID!="1")
             {
                 TreeItem i = Globals.data[((XmlNodeData)n.Tag).ID];
                 if (richerTextBox1.Text.Trim().Length > 0)
@@ -212,10 +212,9 @@ namespace RicherTextBoxDemo.ArkosPadFiles
                     StreamWriter sr = new StreamWriter(filename, false, System.Text.Encoding.UTF8);
                     sr.WriteLine("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
                     sr.WriteLine("<" + treeView1.Nodes[0].Text + ">");
-                    foreach (TreeNode node in tv.Nodes)
-                    {
-                        Nodes.saveNode(node.Nodes, sr, removeFocus, isCloudOld);
-                    }
+                 
+                    Nodes.saveNode(tv.Nodes[0].Nodes, sr, removeFocus, isCloudOld);
+                    
 
                     sr.WriteLine("</" + treeView1.Nodes[0].Text + ">");
                     sr.Close();

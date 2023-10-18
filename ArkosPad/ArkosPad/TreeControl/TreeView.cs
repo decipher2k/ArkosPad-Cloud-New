@@ -29,7 +29,7 @@ namespace RicherTextBoxDemo.TreeControl
             if (n != null && n.Tag != null)
             {
                 String tag = ((XmlNodeData)n.Tag).ID;
-                if (n.Tag != null && tag != "1")
+                if (n.Tag != null)
                 {
                     TreeItem i = Globals.data[tag];
                     if (richerTextBox1.Text.Trim().Length > 0)
@@ -79,6 +79,7 @@ namespace RicherTextBoxDemo.TreeControl
                 {
                     Globals.cloudSession = f.session;
                     Globals.cloudURL = f.url;
+                    Sync.lastSync = DateTime.Now;
                     MainForm.instance.runMainThread();
                 }
                 else
@@ -88,10 +89,11 @@ namespace RicherTextBoxDemo.TreeControl
                     if (filename == "")
                     {
                         mdlg = true;
+                        MainForm.closing = true;
                         filename = f.file;
                         Globals._zipFileName = filename;
                         if (!Globals.isCloud)
-                            new ArkosPadFiles.Files(treeView1).loadFiles(filename);
+                            new ArkosPadFiles.Files(treeView1).loadFiles(filename);                        
                         filename = new ArkosPadFiles.Files(treeView1).getXmlFromFilename(filename);
                         richerTextBox1.File = filename;
                         Globals._filename = filename;

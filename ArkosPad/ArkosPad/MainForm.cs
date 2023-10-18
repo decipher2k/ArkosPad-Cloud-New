@@ -31,7 +31,7 @@ namespace RicherTextBoxDemo
 {
     public partial class MainForm : Form
     {
-        static bool closing = false;
+        public static bool closing = false;
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
 
@@ -129,6 +129,7 @@ namespace RicherTextBoxDemo
                 t.Start();
                 System.Threading.Thread.Sleep(1000);
             }
+            closing = false;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -176,7 +177,7 @@ namespace RicherTextBoxDemo
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            new ArkosPadFiles.Files(treeView1).openFile(richerTextBox1,listView1);
+            new ArkosPadFiles.Files(treeView1).openFile(richerTextBox1,listView1);              
         }
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
@@ -211,13 +212,19 @@ namespace RicherTextBoxDemo
 
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (Globals.isCloud)
+                closing = true;
+            else
+                closing = false;
+
             treeView1.Nodes.Clear();            
-            treeView1.Nodes.Add("Root");
-            listView1.Clear();
+            treeView1.Nodes.Add("Root");            
             richerTextBox1.Text = "";
             Globals._filename = "";
             Globals._zipFileName = "";
             Globals.tempDir = "";
+            Globals.isCloud = false;
+            Globals._maxWeight = 1;
             Globals.data = new Dictionary<String, TreeItem>();
             setFormCaption();
             Globals.notSaved = true;
