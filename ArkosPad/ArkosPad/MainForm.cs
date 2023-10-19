@@ -447,7 +447,7 @@ namespace RicherTextBoxDemo
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (Globals.notSaved)
+            if (Globals.notSaved && !closing)
             {
                 DialogResult r = MessageBox.Show(this, "Do you want to save the project?", "Save Project", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
                 if (r == DialogResult.Yes)
@@ -456,12 +456,14 @@ namespace RicherTextBoxDemo
                     {
                         new ArkosPadFiles.Files(treeView1).saveFiles();
                         closing = true;
+                        deleteTempFiles();
                         Application.Exit();
                     }
                 }
                 else if (r == DialogResult.No)
                 {
                     closing = true;
+                    deleteTempFiles();
                     Application.Exit();
                 }
                 else
@@ -472,8 +474,19 @@ namespace RicherTextBoxDemo
             else
             {
                 closing = true;
+                deleteTempFiles();
                 Application.Exit();
             }
+            
+        }
+
+        public void deleteTempFiles()
+        {
+            try
+            {
+                Directory.Delete(Globals.tempDir, true);
+            }
+            catch { }
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
