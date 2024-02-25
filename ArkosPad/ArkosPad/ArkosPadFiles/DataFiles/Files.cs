@@ -148,7 +148,19 @@ namespace RicherTextBoxDemo.ArkosPadFiles
             dlg.FileName = "New Project.arkospad";
             dlg.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-            if (m_filename != "" || dlg.ShowDialog() == DialogResult.OK)
+            if(m_filename=="")
+            {
+                if(dlg.ShowDialog() == DialogResult.OK)
+                {
+                    m_filename = dlg.FileName;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            if (m_filename != "")
             {
 
                 String filename = "";

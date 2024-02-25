@@ -21,27 +21,23 @@ namespace RicherTextBoxDemo.ArkosPadFiles.DataFiles
         }
         public  void saveFile(RicherTextBox.RicherTextBox richerTextBox1)
         {
-            TreeNode n = treeView1.SelectedNode;
-            if (n != null && n.Tag != null)
-            {
-                String tag = ((XmlNodeData)n.Tag).ID;
-                TreeItem i = Globals.data[tag];
-                if (richerTextBox1.Text.Trim().Length > 0)
-                    i.data = richerTextBox1.Rtf;
-                else
-                    i.data = "";
-                Globals.data[tag] = i;
+         
+                TreeNode n = treeView1.SelectedNode;
+                if (n != null && n.Tag != null)
+                {
+                    String tag = ((XmlNodeData)n.Tag).ID;
+                    TreeItem i = Globals.data[tag];
+                    if (richerTextBox1.Text.Trim().Length > 0)
+                        i.data = richerTextBox1.Rtf;
+                    else
+                        i.data = "";
+                    Globals.data[tag] = i;
 
-                if (Globals._filename != "")
-                {
                     new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename);
-                }
-                else
-                {
-                    new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1);
-                }
-                new ArkosPadFiles.Files(treeView1).saveFiles();
-                SystemSounds.Beep.Play();
+                   
+                    new ArkosPadFiles.Files(treeView1).saveFiles();
+                    SystemSounds.Beep.Play();
+                
             }
         }
 

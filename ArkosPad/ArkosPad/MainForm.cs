@@ -165,7 +165,7 @@ namespace RicherTextBoxDemo
         }
 
         private void addToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+        {            
             new TreeItems().addItem(treeView1, richerTextBox1);
         }
 
@@ -350,7 +350,9 @@ namespace RicherTextBoxDemo
 
         private void saveToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-           new ArkosPadFiles.DataFiles.SaveLoad(treeView1).saveFile(richerTextBox1);
+            //new ArkosPadFiles.DataFiles.SaveLoad(treeView1).saveFile(richerTextBox1);
+            new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1);
+            new ArkosPadFiles.Files(treeView1).saveFiles();
         }
 
         private void upToolStripMenuItem_Click(object sender, EventArgs e)

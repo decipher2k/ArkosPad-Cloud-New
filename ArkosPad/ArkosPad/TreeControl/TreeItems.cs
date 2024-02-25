@@ -20,7 +20,7 @@ namespace RicherTextBoxDemo.TreeControl
                 TreeNode n = mainForm.getSelectedNode();
                 if (!Globals.isCloud)
                 {
-                    new Files(listView1,treeView1).updateFileList(mainForm);
+                    new Files(listView1, treeView1).updateFileList(mainForm);
                 }
                 else
                 {
@@ -53,6 +53,8 @@ namespace RicherTextBoxDemo.TreeControl
             }
         }
 
+        char[] ascii = new char[] { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
+
         public void addItem(System.Windows.Forms.TreeView treeView1, RicherTextBox.RicherTextBox richerTextBox1)
         {
             New n = new New();
@@ -60,6 +62,15 @@ namespace RicherTextBoxDemo.TreeControl
             {
                 Globals.notSaved = true;
                 String name = n.mName;
+
+                String tmpName = name.ToLower();
+                char c=tmpName.First();
+                if(!ascii.Contains(c))
+                {
+                    MessageBox.Show(MainForm.instance, "The item name must begin with a letter.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
                 bool found = false;
 
                 foreach (TreeNode n1 in treeView1.SelectedNode.Nodes)
