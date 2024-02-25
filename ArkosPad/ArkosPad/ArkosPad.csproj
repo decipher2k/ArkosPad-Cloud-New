@@ -101,6 +101,12 @@
     <Compile Include="Misc\Sync.cs" />
     <Compile Include="DtO\SyncDTO.cs" />
     <Compile Include="MainData\TreeItem.cs" />
+    <Compile Include="Splash.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Splash.Designer.cs">
+      <DependentUpon>Splash.cs</DependentUpon>
+    </Compile>
     <Compile Include="TreeControl\TreeItems.cs" />
     <Compile Include="DtO\TreeNodeData.cs" />
     <Compile Include="DtO\UserDataDto.cs" />
@@ -131,6 +137,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <EmbeddedResource Include="Splash.resx">
+      <DependentUpon>Splash.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">

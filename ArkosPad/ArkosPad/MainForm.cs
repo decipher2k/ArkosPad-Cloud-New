@@ -134,6 +134,7 @@ namespace RicherTextBoxDemo
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            new Splash().ShowDialog();
             treeView = new TreeControl.TreeView(treeView1);
             Misc.Tools.RegisterForFileExtension(".arkospad", System.Reflection.Assembly.GetExecutingAssembly().Location);
             new ArkosPadFiles.Files(treeView1).LoadInit(listView1,richerTextBox1);
