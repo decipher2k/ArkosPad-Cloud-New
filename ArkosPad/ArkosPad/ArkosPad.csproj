@@ -48,6 +48,9 @@
     <Reference Include="Dual.Common.IonicZip, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\DualSoft-Common-IonicZip.0.1.2\lib\net48\Dual.Common.IonicZip.dll</HintPath>
     </Reference>
+    <Reference Include="License">
+      <HintPath>..\..\..\Program Files (x86)\Eziriz\.NET Reactor\SDK\Binaries\License.dll .NET 4.x\License.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>

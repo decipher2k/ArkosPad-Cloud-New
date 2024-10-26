@@ -134,7 +134,11 @@ namespace RicherTextBoxDemo
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            new Splash().ShowDialog();
+            if (!(License.Status.Licensed && License.Status.License_HardwareID == License.Status.HardwareID))
+            {
+                MessageBox.Show(this,"No valid license found","Error",MessageBoxButtons.OK,MessageBoxIcon.Error);
+                Process.GetCurrentProcess().Kill();
+            }
             treeView = new TreeControl.TreeView(treeView1);
             Misc.Tools.RegisterForFileExtension(".arkospad", System.Reflection.Assembly.GetExecutingAssembly().Location);
             new ArkosPadFiles.Files(treeView1).LoadInit(listView1,richerTextBox1);
