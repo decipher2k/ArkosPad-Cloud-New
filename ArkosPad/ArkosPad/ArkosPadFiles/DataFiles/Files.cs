@@ -1,345 +1,427 @@
-﻿using Ionic.Zip;
-using Ionic.Zlib;
-using RicherTextBox;
-using RicherTextBoxDemo.DtO;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using Ionic.Zip;
+using Ionic.Zlib;
+using RicherTextBoxDemo.Core;
+using RicherTextBoxDemo.DtO;
 
 namespace RicherTextBoxDemo.ArkosPadFiles
 {
-    public  class Files
+    /// <summary>
+    /// Handles file operations for ArkosPad projects.
+    /// </summary>
+    public class Files
     {
-        System.Windows.Forms.TreeView treeView1;
-        public Files(System.Windows.Forms.TreeView treeView1) 
-        {
-            this.treeView1 = treeView1;
-        }  
+        private readonly System.Windows.Forms.TreeView _treeView;
+        private readonly AppSettings _settings;
 
-        public  String getXmlFromFilename(String filename)
+        public Files(System.Windows.Forms.TreeView treeView)
         {
-            String file = "";
-            if (filename != null)
-            {
-                if (filename != "")
-                {
-                    String xml = Globals.tempDir;
-                    file = Path.GetFileName(filename.Substring(0, filename.LastIndexOf(".")));
-                }
-            }
-            return Globals.tempDir + "\\data.xml";
+            _treeView = treeView ?? throw new ArgumentNullException(nameof(treeView));
+            _settings = AppSettings.Instance;
         }
 
-        private  void BackupDirectory(string directory, string target)
+        #region Public Methods
+
+        /// <summary>
+        /// Gets the XML data file path from a filename.
+        /// </summary>
+        public string getXmlFromFilename(string filename)
         {
-            directory = directory.Replace("\\\\", "\\");
-
-            using (ZipFile zip = new ZipFile
-            {
-                CompressionLevel = CompressionLevel.BestCompression
-            })
-            {
-                var files = Directory.GetFiles(directory, "*",
-                    System.IO.SearchOption.AllDirectories).ToArray();
-
-                foreach (var f in files)
-                {
-                    zip.AddFile(f,
-                        Path.GetDirectoryName(f).
-                        Replace(directory, string.Empty));
-                }
-
-                zip.Save(target);
-            }
+            return Path.Combine(_settings.TempDirectory, Constants.DataFileName);
         }
 
-        public  void saveFiles()
+        /// <summary>
+        /// Saves the current project to a zip file.
+        /// </summary>
+        public void saveFiles()
         {
             try
             {
-                BackupDirectory(Globals.tempDir, Globals._zipFileName);
-                Globals.notSaved = false;
+                CompressDirectory(_settings.TempDirectory, _settings.ZipFileName);
+                _settings.MarkAsSaved();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                MessageBox.Show(MainForm.instance, "Can't save file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        public  void loadFiles(String filename)
-        {
-            if (Globals.tempDir != "")
-            {
-                Directory.CreateDirectory(Globals.tempDir);
-                Ionic.Zip.ZipFile zf = new Ionic.Zip.ZipFile(Globals._zipFileName);
-                zf.ExtractAll(Globals.tempDir, Ionic.Zip.ExtractExistingFileAction.OverwriteSilently);
-                zf.Dispose();
-                string[] files = Directory.GetFiles(Globals.tempDir);
-                foreach (String f in files)
-                {
-                    if (f.Contains(".xml.dat") && !System.IO.File.Exists(Globals.tempDir + "\\" + "data.dat"))
-                        File.Move(f, Globals.tempDir + "\\data.dat");
-                    else if (f.Contains(".xml") && !f.Contains(".xml.dat") && !System.IO.File.Exists(Globals.tempDir + "\\" + "data.xml"))
-                        File.Move(f, Globals.tempDir + "\\" + "data.xml");
-                }
-
-                foreach (String dir in Directory.GetDirectories(Globals.tempDir))
-                {
-                    if (!Directory.Exists(Globals.tempDir + "\\_dat"))
-                        Directory.Move(dir, Globals.tempDir + "\\_dat");
-                }
+                ShowError(Constants.Messages.CannotSaveFile);
             }
         }
 
-        public  void LoadInit(System.Windows.Forms.ListView listView1, RicherTextBox.RicherTextBox richerTextBox1)
+        /// <summary>
+        /// Loads project files from a zip archive.
+        /// </summary>
+        public void loadFiles(string filename)
         {
-            if (Globals._zipFileName == "" || Globals._zipFileName == null)
-                Globals._zipFileName = Registry.getFilename();
-
-            if (Globals._zipFileName != "")
+            if (string.IsNullOrEmpty(_settings.TempDirectory))
             {
-                Globals.tempDir = Path.GetTempPath();
-                String filePath = "";
-                do
-                {
-                    filePath = Misc.Tools.RandomString(5);
-                } while (Directory.Exists(Globals.tempDir + "\\" + filePath));
-                Globals.tempDir = Path.GetTempPath() + "\\" + filePath;
+                return;
+            }
 
-                try
-                {
-                    Globals._filename = new ArkosPadFiles.Files(treeView1).getXmlFromFilename(Globals._zipFileName);
-                    loadFiles(Globals._zipFileName);
+            Directory.CreateDirectory(_settings.TempDirectory);
 
-                    TreeControl.TreeView treeView= new TreeControl.TreeView(treeView1);
-                    treeView.populateTreeview(richerTextBox1,listView1,Globals._filename);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(MainForm.instance, "Error creating temp file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+            using (var zipFile = new ZipFile(_settings.ZipFileName))
+            {
+                zipFile.ExtractAll(_settings.TempDirectory, ExtractExistingFileAction.OverwriteSilently);
+            }
+
+            NormalizeExtractedFiles(_settings.TempDirectory);
+        }
+
+        /// <summary>
+        /// Initializes the application by loading the last opened file.
+        /// </summary>
+        public void LoadInit(ListView listView, RicherTextBox.RicherTextBox richerTextBox)
+        {
+            if (string.IsNullOrEmpty(_settings.ZipFileName))
+            {
+                _settings.ZipFileName = Registry.getFilename();
+            }
+
+            if (string.IsNullOrEmpty(_settings.ZipFileName))
+            {
+                return;
+            }
+
+            _settings.TempDirectory = CreateTempDirectory();
+
+            try
+            {
+                _settings.CurrentFileName = getXmlFromFilename(_settings.ZipFileName);
+                loadFiles(_settings.ZipFileName);
+
+                var treeViewController = new TreeControl.TreeView(_treeView);
+                treeViewController.populateTreeview(richerTextBox, listView, _settings.CurrentFileName);
+            }
+            catch (Exception)
+            {
+                ShowError(Constants.Messages.ErrorCreatingTempFile);
             }
         }
 
-        public  bool exportToXml(RicherTextBox.RicherTextBox richerTextBox1, String m_filename = "", bool removeFocus = false)
+        /// <summary>
+        /// Exports the tree data to XML format.
+        /// </summary>
+        public bool exportToXml(RicherTextBox.RicherTextBox richerTextBox, 
+            string filename = "", bool removeFocus = false)
         {
-            bool isCloudOld = Globals.isCloud;
-            Globals.isCloud = false;
-            TreeNode n = treeView1.SelectedNode;
-            if (n != null && n.Tag != null && ((XmlNodeData)n.Tag).ID!="1")
+            bool wasCloudMode = _settings.IsCloudMode;
+            _settings.IsCloudMode = false;
+
+            try
             {
-                TreeItem i = Globals.data[((XmlNodeData)n.Tag).ID];
-                if (richerTextBox1.Text.Trim().Length > 0)
-                    i.data = richerTextBox1.Rtf;
-                else
-                    i.data = "";
-                Globals.data[((XmlNodeData)n.Tag).ID] = i;
+                SaveCurrentNodeData(richerTextBox);
+
+                // Use existing filename if available
+                if (string.IsNullOrEmpty(filename) && !string.IsNullOrEmpty(_settings.CurrentFileName))
+                {
+                    filename = _settings.ZipFileName;
+                }
+
+                if (string.IsNullOrEmpty(filename))
+                {
+                    filename = PromptForSaveLocation();
+                    if (string.IsNullOrEmpty(filename))
+                    {
+                        _settings.IsCloudMode = wasCloudMode;
+                        return false;
+                    }
+                }
+
+                return PerformExport(richerTextBox, filename, removeFocus, wasCloudMode);
             }
-
-            TreeView tv = treeView1;
-
-            SaveFileDialog dlg = new SaveFileDialog();
-            dlg.Title = "Save ArkosPad Document";
-            dlg.Filter = "ArkosPad Files (*.arkospad)|*.arkospad";
-            dlg.FileName = "New Project.arkospad";
-            dlg.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-
-            if(m_filename=="")
+            catch (Exception)
             {
-                if(dlg.ShowDialog() == DialogResult.OK)
-                {
-                    m_filename = dlg.FileName;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            if (m_filename != "")
-            {
-
-                String filename = "";
-                if (m_filename != "")
-                {
-                    filename = m_filename;
-                }
-                else
-                {
-                    filename = dlg.FileName;
-                }
-
-                try
-                {
-
-                    if (!filename.EndsWith(".xml"))
-                    {
-
-
-
-
-                        String filePath = "";
-                        do
-                        {
-                            filePath = Misc.Tools.RandomString(5);
-                        } while (Directory.Exists(Path.GetTempPath() + "\\" + filePath));
-
-                        try
-                        {
-                            moveFiles(new ArkosPadFiles.Files(treeView1).getXmlFromFilename(Globals._zipFileName), Path.GetTempPath() + "\\" + filePath + "\\data.xml");
-                        }
-                        catch { }
-
-                        Directory.CreateDirectory(Path.GetTempPath() + "\\" + filePath);
-                        Directory.CreateDirectory(Path.GetTempPath() + "\\" + filePath + "\\_dat");
-                        /*if(Globals.tempDir!="")
-                            moveFiles(Globals.tempDir, Path.GetTempPath() + "\\" + filePath);*/
-
-                        Globals.tempDir = Path.GetTempPath() + "\\" + filePath;
-
-                        Globals._zipFileName = filename;
-
-                        if (filename != Globals._zipFileName)
-                        {
-                            new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,new ArkosPadFiles.Files(treeView1).getXmlFromFilename(filename));
-                            File.Copy(Globals._zipFileName, filename, true);
-                            return true;
-                        }
-
-
-                        filename = new ArkosPadFiles.Files(treeView1).getXmlFromFilename(filename);
-
-                    }
-                    else
-                    {
-                        Globals.notSaved = true;
-                    }
-
-                    if (!Directory.Exists(Globals.tempDir + "\\_dat"))
-                        Directory.CreateDirectory(Globals.tempDir + "\\_dat");
-                    StreamWriter sr = new StreamWriter(filename, false, System.Text.Encoding.UTF8);
-                    sr.WriteLine("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
-                    sr.WriteLine("<" + treeView1.Nodes[0].Text + ">");
-                 
-                    Nodes.saveNode(tv.Nodes[0].Nodes, sr, removeFocus, isCloudOld);
-                    
-
-                    sr.WriteLine("</" + treeView1.Nodes[0].Text + ">");
-                    sr.Close();
-
-                    try
-                    {
-                        File.Delete(Globals.tempDir + "\\data.dat");
-                        DataStorage.SerializeNow(Globals.tempDir + "\\data.dat", Globals.data);
-                        Microsoft.Win32.RegistryKey key;
-                        key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("ArkosPad");
-                        key.SetValue("LastFile", Globals._zipFileName);
-                        key.Close();
-                        Globals._filename = filename;
-                        MainForm.instance.setFormCaption();
-                        Globals.isCloud = isCloudOld;
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(MainForm.instance, "Can't save file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(MainForm.instance, "Can't save file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-            else
-            {
-                Globals.isCloud = isCloudOld;
+                ShowError(Constants.Messages.CannotSaveFile);
+                _settings.IsCloudMode = wasCloudMode;
                 return false;
             }
-            Globals.isCloud = isCloudOld;
-            return false;
         }
-        private  void moveFiles(String oldFile, String newFile)
+
+        /// <summary>
+        /// Copies a file to the attachments directory.
+        /// </summary>
+        public string copyFile(string sourcePath)
         {
-            String oldFileDir = Path.GetDirectoryName(oldFile) + "\\_dat";
-            String newFileDir = Path.GetDirectoryName(newFile) + "\\_dat";
-
-            if (Directory.Exists(oldFileDir))
+            if (string.IsNullOrEmpty(_settings.CurrentFileName))
             {
-                try
-                {
-                    if (!Directory.Exists(newFileDir))
-                        Directory.CreateDirectory(newFileDir);
+                ShowError(Constants.Messages.SaveProjectFirst);
+                return string.Empty;
+            }
 
-                    foreach (String file in Directory.GetFiles(oldFileDir))
-                    {
-                        File.Copy(file, newFileDir + "\\" + Path.GetFileName(file));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(MainForm.instance, "Can't copy files.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    throw ex;
-                }
+            string attachmentsDir = GetAttachmentsDirectory();
+            EnsureDirectoryExists(attachmentsDir);
+
+            string destinationPath = GenerateUniqueFilePath(attachmentsDir, Path.GetExtension(sourcePath));
+            File.Copy(sourcePath, destinationPath);
+
+            return destinationPath;
+        }
+
+        /// <summary>
+        /// Opens a project file.
+        /// </summary>
+        public void openFile(RicherTextBox.RicherTextBox richerTextBox, ListView listView)
+        {
+            _settings.TempDirectory = CreateTempDirectory();
+
+            var treeViewController = new TreeControl.TreeView(_treeView);
+            treeViewController.populateTreeview(richerTextBox, listView);
+
+            MainForm.instance.setFormCaption();
+            SaveLastFileToRegistry();
+        }
+
+        #endregion
+
+        #region Private Helper Methods
+
+        private void SaveCurrentNodeData(RicherTextBox.RicherTextBox richerTextBox)
+        {
+            TreeNode selectedNode = _treeView.SelectedNode;
+            if (selectedNode?.Tag == null)
+            {
+                return;
+            }
+
+            var nodeData = selectedNode.Tag as XmlNodeData;
+            if (nodeData == null || nodeData.ID == Constants.RootNodeId)
+            {
+                return;
+            }
+
+            if (!_settings.Data.ContainsKey(nodeData.ID))
+            {
+                return;
+            }
+
+            TreeItem item = _settings.Data[nodeData.ID];
+            item.Data = string.IsNullOrWhiteSpace(richerTextBox.Text) 
+                ? string.Empty 
+                : richerTextBox.Rtf;
+            _settings.Data[nodeData.ID] = item;
+        }
+
+        private string PromptForSaveLocation()
+        {
+            using (var dialog = new SaveFileDialog())
+            {
+                dialog.Title = "Save ArkosPad Document";
+                dialog.Filter = Constants.FileFilters.ArkosPadFiles;
+                dialog.FileName = "New Project" + Constants.FileExtension;
+                dialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+                return dialog.ShowDialog() == DialogResult.OK ? dialog.FileName : null;
             }
         }
 
-        public  String copyFile(String oldFile)
+        private bool PerformExport(RicherTextBox.RicherTextBox richerTextBox, 
+            string filename, bool removeFocus, bool wasCloudMode)
         {
-            String newFilePath = "";
-            if (Globals._filename == "")
+            string xmlFilename = filename;
+
+            if (!filename.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
             {
-                MessageBox.Show(MainForm.instance, "Please save your project first.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                SetupTempDirectoryForNewFile(filename);
+                xmlFilename = getXmlFromFilename(filename);
             }
             else
             {
-                String newFileDir = Path.GetDirectoryName(Globals._filename) + "\\_dat";
-
-                if (!Directory.Exists(newFileDir))
-                    Directory.CreateDirectory(newFileDir);
-
-
-
-                do
-                {
-                    newFilePath = newFileDir + "\\" + Misc.Tools.RandomString(20) + "." + Path.GetExtension(oldFile);
-                } while (File.Exists(newFilePath));
-
-                File.Copy(oldFile, newFilePath);
+                _settings.MarkAsModified();
             }
-            return newFilePath;
+
+            EnsureDirectoryExists(Path.Combine(_settings.TempDirectory, Constants.AttachmentsFolderName));
+
+            WriteXmlFile(xmlFilename, removeFocus, wasCloudMode);
+            SaveBinaryData(xmlFilename);
+
+            _settings.IsCloudMode = wasCloudMode;
+            return true;
         }
 
-        public  void openFile(RicherTextBox.RicherTextBox richerTextBox1, ListView listView1)
+        private void SetupTempDirectoryForNewFile(string filename)
         {
-            Globals.tempDir = Path.GetTempPath();
-            String filePath = "";
-            do
-            {
-                filePath = Misc.Tools.RandomString(5);
-            } while (Directory.Exists(Globals.tempDir + "\\" + filePath));
-            Globals.tempDir = Path.GetTempPath() + "\\" + filePath;
+            string oldTempDir = _settings.TempDirectory;
+            _settings.TempDirectory = CreateTempDirectory();
+            _settings.ZipFileName = filename;
 
-            new  TreeControl.TreeView(treeView1).populateTreeview(richerTextBox1,listView1);
+            EnsureDirectoryExists(_settings.TempDirectory);
+            EnsureDirectoryExists(Path.Combine(_settings.TempDirectory, Constants.AttachmentsFolderName));
+
+            if (!string.IsNullOrEmpty(oldTempDir))
+            {
+                CopyAttachmentFiles(oldTempDir, _settings.TempDirectory);
+            }
+        }
+
+        private void WriteXmlFile(string filename, bool removeFocus, bool wasCloudMode)
+        {
+            using (var writer = new StreamWriter(filename, false, System.Text.Encoding.UTF8))
+            {
+                string rootName = _treeView.Nodes[0].Text;
+
+                writer.WriteLine("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
+                writer.WriteLine($"<{rootName}>");
+
+                Nodes.saveNode(_treeView.Nodes[0].Nodes, writer, removeFocus, wasCloudMode);
+
+                writer.WriteLine($"</{rootName}>");
+            }
+        }
+
+        private void SaveBinaryData(string xmlFilename)
+        {
+            string datFilePath = Path.Combine(_settings.TempDirectory, Constants.DataBinaryFileName);
+
+            if (File.Exists(datFilePath))
+            {
+                File.Delete(datFilePath);
+            }
+
+            DataStorage.SerializeNow(datFilePath, _settings.Data);
+            Registry.SetLastFileName(_settings.ZipFileName);
+
+            _settings.CurrentFileName = xmlFilename;
             MainForm.instance.setFormCaption();
+        }
+
+        private void CopyAttachmentFiles(string sourceDir, string destDir)
+        {
+            string sourceAttachments = Path.Combine(sourceDir, Constants.AttachmentsFolderName);
+            string destAttachments = Path.Combine(destDir, Constants.AttachmentsFolderName);
+
+            if (!Directory.Exists(sourceAttachments))
+            {
+                return;
+            }
+
             try
             {
+                EnsureDirectoryExists(destAttachments);
 
-                Microsoft.Win32.RegistryKey key;
-                key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("ArkosPad");
-                key.SetValue("LastFile", Globals._zipFileName);
-                key.Close();
-                MainForm.instance.setFormCaption();
+                foreach (string file in Directory.GetFiles(sourceAttachments))
+                {
+                    string destFile = Path.Combine(destAttachments, Path.GetFileName(file));
+                    File.Copy(file, destFile, true);
+                }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show(MainForm.instance, "Can't open file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ShowError(Constants.Messages.CannotCopyFiles);
+                throw;
             }
         }
 
+        private void CompressDirectory(string sourceDirectory, string targetPath)
+        {
+            sourceDirectory = sourceDirectory.Replace("\\\\", "\\");
 
+            using (var zip = new ZipFile())
+            {
+                zip.CompressionLevel = CompressionLevel.BestCompression;
+                
+                var files = Directory.GetFiles(sourceDirectory, "*", SearchOption.AllDirectories);
+
+                foreach (string file in files)
+                {
+                    string relativePath = Path.GetDirectoryName(file)
+                        .Replace(sourceDirectory, string.Empty);
+                    zip.AddFile(file, relativePath);
+                }
+
+                zip.Save(targetPath);
+            }
+        }
+
+        private void NormalizeExtractedFiles(string directory)
+        {
+            foreach (string file in Directory.GetFiles(directory))
+            {
+                string fileName = Path.GetFileName(file);
+
+                if (fileName.Contains(".xml.dat") && 
+                    !File.Exists(Path.Combine(directory, Constants.DataBinaryFileName)))
+                {
+                    File.Move(file, Path.Combine(directory, Constants.DataBinaryFileName));
+                }
+                else if (fileName.EndsWith(".xml") && !fileName.Contains(".xml.dat") &&
+                         !File.Exists(Path.Combine(directory, Constants.DataFileName)))
+                {
+                    File.Move(file, Path.Combine(directory, Constants.DataFileName));
+                }
+            }
+
+            string attachmentsPath = Path.Combine(directory, Constants.AttachmentsFolderName);
+            foreach (string dir in Directory.GetDirectories(directory))
+            {
+                if (!Directory.Exists(attachmentsPath))
+                {
+                    Directory.Move(dir, attachmentsPath);
+                }
+            }
+        }
+
+        private string CreateTempDirectory()
+        {
+            string basePath = Path.GetTempPath();
+            string folderName;
+
+            do
+            {
+                folderName = Misc.Tools.RandomString(5);
+            } while (Directory.Exists(Path.Combine(basePath, folderName)));
+
+            string fullPath = Path.Combine(basePath, folderName);
+            Directory.CreateDirectory(fullPath);
+
+            return fullPath;
+        }
+
+        private string GetAttachmentsDirectory()
+        {
+            return Path.Combine(Path.GetDirectoryName(_settings.CurrentFileName), Constants.AttachmentsFolderName);
+        }
+
+        private string GenerateUniqueFilePath(string directory, string extension)
+        {
+            string filePath;
+
+            do
+            {
+                filePath = Path.Combine(directory, Misc.Tools.RandomString(20) + extension);
+            } while (File.Exists(filePath));
+
+            return filePath;
+        }
+
+        private void EnsureDirectoryExists(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+        }
+
+        private void SaveLastFileToRegistry()
+        {
+            try
+            {
+                Registry.SetLastFileName(_settings.ZipFileName);
+                MainForm.instance.setFormCaption();
+            }
+            catch (Exception)
+            {
+                ShowError(Constants.Messages.CannotOpenFile);
+            }
+        }
+
+        private void ShowError(string message)
+        {
+            MessageBox.Show(MainForm.instance, message, Constants.Messages.ErrorTitle, 
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        #endregion
     }
 }

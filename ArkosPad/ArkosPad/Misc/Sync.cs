@@ -1,252 +1,191 @@
-﻿using Microsoft.VisualBasic.Logging;
-using RicherTextBoxDemo.ArkosPadFiles;
-using RicherTextBoxDemo.DtO;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
-using System.IO.Pipes;
-using System.Linq;
-using System.Net;
-using System.Security.Policy;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Collections.Specialized.BitVector32;
+using RicherTextBoxDemo.ArkosPadFiles;
+using RicherTextBoxDemo.Core;
+using RicherTextBoxDemo.DtO;
+using RicherTextBoxDemo.Services;
 
 namespace RicherTextBoxDemo
 {
-    public class Sync
+    /// <summary>
+    /// Handles synchronization between local and cloud storage.
+    /// Acts as a facade for cloud operations.
+    /// </summary>
+    public static class Sync
     {
+        private static readonly CloudStorageService CloudService = new CloudStorageService();
+        
+        public static DateTime lastSync = DateTime.Now;
 
-        public static DateTime lastSync=DateTime.Now;
-        public static String toRtf(String html)
+        /// <summary>
+        /// Converts HTML content to RTF format.
+        /// </summary>
+        public static string toRtf(string html)
         {
-            
-            RichTextBox rtbTemp = new RichTextBox();
-            WebBrowser wb = new WebBrowser();
-            wb.Navigate("about:blank");
+            if (string.IsNullOrWhiteSpace(html))
+            {
+                return string.Empty;
+            }
 
-            wb.Document.Write(html);
-            wb.Document.ExecCommand("SelectAll", false, null);
-            wb.Document.ExecCommand("Copy", false, null);
+            using (var rtbTemp = new RichTextBox())
+            using (var wb = new WebBrowser())
+            {
+                wb.Navigate("about:blank");
+                wb.Document.Write(html);
+                wb.Document.ExecCommand("SelectAll", false, null);
+                wb.Document.ExecCommand("Copy", false, null);
 
-            rtbTemp.SelectAll();
-            rtbTemp.Paste();
+                rtbTemp.SelectAll();
+                rtbTemp.Paste();
 
-            return rtbTemp.Rtf;
+                return rtbTemp.Rtf;
+            }
         }
+
+        /// <summary>
+        /// Performs HTTP GET request.
+        /// </summary>
+        [Obsolete("Use HttpClientService directly")]
         public static string Get(string uri)
         {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
-            request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-            request.Method = "GET";
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (Stream stream = response.GetResponseStream())
-            using (StreamReader reader = new StreamReader(stream))
-            {
-                return reader.ReadToEnd();
-            }
+            var httpClient = new HttpClientService();
+            return httpClient.Get(uri);
         }
 
-
-        public static void UploadFile(String file, int idNode, String fileName = "")
+        /// <summary>
+        /// Uploads a file to the cloud.
+        /// </summary>
+        public static void UploadFile(string filePath, int nodeId, string fileName = "")
         {
-            NameValueCollection nvc = new NameValueCollection();
-            nvc.Add("id", idNode.ToString());
-            if(fileName=="")
-                nvc.Add("fileName", Path.GetFileName(file));
-            else
-                nvc.Add("fileName", fileName);
-
-            nvc.Add("session", Globals.cloudSession);
-            HttpUploadFile(Globals.cloudURL + "/api/Files/Upload", file, "file", "application/octet-stream", nvc);
+            CloudService.UploadFile(filePath, nodeId, fileName);
         }
 
-        public static void HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection nvc)
+        /// <summary>
+        /// Gets files associated with a node.
+        /// </summary>
+        public static List<FileDto.fileCapsule> GetFiles(int nodeId)
         {
-            
-            string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
-            byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
-
-            HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(url);
-            wr.ContentType = "multipart/form-data; boundary=" + boundary;
-            wr.Method = "POST";
-            wr.KeepAlive = true;
-            wr.Credentials = System.Net.CredentialCache.DefaultCredentials;
-
-            Stream rs = wr.GetRequestStream();
-
-            string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
-            foreach (string key in nvc.Keys)
-            {
-                rs.Write(boundarybytes, 0, boundarybytes.Length);
-                string formitem = string.Format(formdataTemplate, key, nvc[key]);
-                byte[] formitembytes = System.Text.Encoding.UTF8.GetBytes(formitem);
-                rs.Write(formitembytes, 0, formitembytes.Length);
-            }
-            rs.Write(boundarybytes, 0, boundarybytes.Length);
-
-            string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
-            string header = string.Format(headerTemplate, paramName, file, contentType);
-            byte[] headerbytes = System.Text.Encoding.UTF8.GetBytes(header);
-            rs.Write(headerbytes, 0, headerbytes.Length);
-
-            FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read);
-            byte[] buffer = new byte[4096];
-            int bytesRead = 0;
-            while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
-            {
-                rs.Write(buffer, 0, bytesRead);
-            }
-            fileStream.Close();
-
-            byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
-            rs.Write(trailer, 0, trailer.Length);
-            rs.Close();
-
-            WebResponse wresp = null;
-            try
-            {
-                wresp = wr.GetResponse();
-                Stream stream2 = wresp.GetResponseStream();
-                StreamReader reader2 = new StreamReader(stream2);
-            }
-            catch (Exception ex)
-            {
-                if (wresp != null)
-                {
-                    wresp.Close();
-                    wresp = null;
-                }
-            }
-            finally
-            {
-                wr = null;
-            }
+            return CloudService.GetFiles(nodeId);
         }
 
-        public static List<FileDto.fileCapsule> GetFiles(int idNode)
+        /// <summary>
+        /// Deletes a file from the cloud.
+        /// </summary>
+        public static void DeleteFile(int fileId)
         {
-            IdDto id = new IdDto() { id = idNode, session = Globals.cloudSession };
-            String data = Newtonsoft.Json.JsonConvert.SerializeObject(id);
-            String content = HttpPost(data, "/api/Files/GetFiles");
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<List<FileDto.fileCapsule>>(content);
+            CloudService.DeleteFileById(fileId);
         }
 
-
-        public static void DeleteFile(int idFile)
+        /// <summary>
+        /// Downloads a file from the cloud.
+        /// </summary>
+        public static void DownloadFile(int fileId, string destinationPath)
         {
-            IdDto id = new IdDto() { id = idFile, session = Globals.cloudSession };
-            String data = Newtonsoft.Json.JsonConvert.SerializeObject(id);
-            HttpPost(data, "/api/Files/Delete");
+            CloudService.DownloadFile(fileId, destinationPath);
         }
 
-        public static void DownloadFile(int idFile, String outPath)
-        {
-            IdDto id = new IdDto() { id = idFile, session = Globals.cloudSession };
-            String data = Newtonsoft.Json.JsonConvert.SerializeObject(id);
-
-            //if (MainForm.isCloud)
-            {
-                var request = (HttpWebRequest)WebRequest.Create(Globals.cloudURL + "/api/Files/Download");
-                request.Method = "POST";
-                request.ContentType = "text/json";
-                request.ContentLength = data.Length;
-
-                using (var stream = request.GetRequestStream())
-                {
-                    stream.Write(Encoding.ASCII.GetBytes(data), 0, data.Length);
-                }
-
-                var response = (HttpWebResponse)request.GetResponse();
-                var responseStream = response.GetResponseStream();
-                var buffer = new byte[100000000];
-                int bytesRead;
-                FileStream fileStream = new System.IO.FileStream(outPath, System.IO.FileMode.OpenOrCreate, System.IO.FileAccess.Write);
-                do
-                {
-                    bytesRead = responseStream.Read(buffer, 0, 100000000);
-                    fileStream.Write(buffer, 0, bytesRead);
-                } while (bytesRead > 0);
-                fileStream.Dispose();
-            }            
-        }
-
-        public static Dictionary<String, TreeItem> fetchNodes(TreeView treeView)
+        /// <summary>
+        /// Fetches all nodes from cloud and populates the tree view.
+        /// </summary>
+        public static Dictionary<string, TreeItem> fetchNodes(TreeView treeView)
         {
             treeView.Nodes[0].Nodes.Clear();
 
-            String content = Get(Globals.cloudURL+"/api/Sync/GetNodes?session="+Globals.cloudSession);
-            List<SyncDTO> list = new List<SyncDTO>();
-            SyncDTO root = Newtonsoft.Json.JsonConvert.DeserializeObject<SyncDTO>(content);
+            SyncDTO root = CloudService.FetchNodes();
+            var data = Nodes.addTreeNodeSync(root, treeView.Nodes[0], new Dictionary<string, TreeItem>());
             
-            Dictionary<String, TreeItem> ret = Nodes.addTreeNodeSync(root, treeView.Nodes[0], new Dictionary<string, TreeItem>());
             treeView.ExpandAll();
-            return ret;
+            return data;
         }
 
-        public static void DeleteNode(TreeNode item)
+        /// <summary>
+        /// Deletes a node from the cloud.
+        /// </summary>
+        public static void DeleteNode(TreeNode node)
         {
-            PageDto pageDto = new PageDto();
-            pageDto.session = Globals.cloudSession;
-            pageDto.url = getUrlFromTreeNode(item);
-
-            HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(pageDto), "/api/MarkdownPage/DeletePage");
+            string nodePath = GetUrlFromTreeNode(node);
+            CloudService.DeleteNode(nodePath);
         }
 
+        /// <summary>
+        /// Clears all cloud data.
+        /// </summary>
         public static void Clear()
         {
-            if(Globals.isCloud)
-                Get(Globals.cloudURL + "/api/Sync/Clear?session=" + Globals.cloudSession);
-        }
-
-        public static String getUrlFromTreeNode(TreeNode node)
-        {
-            String ret = node.Text;
-            while(node.Parent!=null)
+            if (AppSettings.Instance.IsCloudMode)
             {
-                node = node.Parent;
-                if(node.Tag!=null && ((XmlNodeData)node.Tag).ID!="1")
-                    ret = node.Text + ":" + ret;
+                CloudService.ClearCloud();
             }
-            if (ret == "Root")
-                throw new Exception();
-            return ret;
         }
 
-        public static void UpdateOrAddNode(String text, int weight, TreeNode item)
+        /// <summary>
+        /// Constructs a URL path from a tree node's hierarchy.
+        /// </summary>
+        public static string getUrlFromTreeNode(TreeNode node)
         {
-            PageDto pageDto = new PageDto();
-            pageDto.url = getUrlFromTreeNode(item);
-            pageDto.text = text;            
-            pageDto.weight = weight;
-            pageDto.session= Globals.cloudSession;
-            HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(pageDto), "/api/MarkdownPage/SaveMarkupPage");
+            return GetUrlFromTreeNode(node);
         }
 
-        public static String HttpPost(String data, String path)
+        /// <summary>
+        /// Constructs a URL path from a tree node's hierarchy.
+        /// </summary>
+        public static string GetUrlFromTreeNode(TreeNode node)
         {
-            var responseString = "";
-            //if (MainForm.isCloud)
+            if (node == null)
             {
+                throw new ArgumentNullException(nameof(node));
+            }
 
-                var request = (HttpWebRequest)WebRequest.Create(Globals.cloudURL + path);
-                request.Method = "POST";
-                request.ContentType = "text/json";
-                request.ContentLength = data.Length;
+            string path = node.Text;
+            TreeNode current = node;
 
-                using (var stream = request.GetRequestStream())
+            while (current.Parent != null)
+            {
+                current = current.Parent;
+                
+                if (current.Tag != null)
                 {
-                    stream.Write(Encoding.ASCII.GetBytes(data), 0, data.Length);
+                    var nodeData = current.Tag as XmlNodeData;
+                    if (nodeData != null && nodeData.ID != Constants.RootNodeId)
+                    {
+                        path = current.Text + ":" + path;
+                    }
                 }
-
-               var response = (HttpWebResponse)request.GetResponse();
-
-                 responseString = new StreamReader(response.GetResponseStream()).ReadToEnd();
             }
-            return  responseString;
+
+            if (path == Constants.RootNodeName)
+            {
+                throw new InvalidOperationException("Cannot get URL for root node");
+            }
+
+            return path;
         }
 
+        /// <summary>
+        /// Updates or adds a node in the cloud.
+        /// </summary>
+        public static void UpdateOrAddNode(string text, int weight, TreeNode node)
+        {
+            string nodePath = GetUrlFromTreeNode(node);
+            CloudService.UpdateOrAddNode(text, weight, nodePath);
+        }
+
+        /// <summary>
+        /// Performs HTTP POST request.
+        /// </summary>
+        public static string HttpPost(string jsonData, string path)
+        {
+            var httpClient = new HttpClientService();
+            return httpClient.Post(AppSettings.Instance.CloudUrl + path, jsonData);
+        }
+
+        /// <summary>
+        /// Gets the last synchronization time from the server.
+        /// </summary>
+        public static DateTime GetLastSyncTime()
+        {
+            return CloudService.GetLastSyncTime();
+        }
     }
 }

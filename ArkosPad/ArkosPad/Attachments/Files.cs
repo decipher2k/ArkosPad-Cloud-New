@@ -1,219 +1,368 @@
-﻿using RicherTextBoxDemo.DtO;
-using RicherTextBoxDemo.TreeControl;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using RicherTextBoxDemo.Core;
+using RicherTextBoxDemo.DtO;
 
 namespace RicherTextBoxDemo.Attachments
 {
+    /// <summary>
+    /// Service for managing file attachments associated with tree nodes.
+    /// </summary>
     public class Files
     {
-        System.Windows.Forms.ListView listView1;
-        System.Windows.Forms.TreeView treeView1;
-        public Files(System.Windows.Forms.ListView listView1, System.Windows.Forms.TreeView treeView1) 
+        private readonly ListView _listView;
+        private readonly System.Windows.Forms.TreeView _treeView;
+        private readonly AppSettings _settings;
+
+        public Files(ListView listView, System.Windows.Forms.TreeView treeView)
         {
-            this.listView1 = listView1;
-            this.treeView1 = treeView1;
+            _listView = listView ?? throw new ArgumentNullException(nameof(listView));
+            _treeView = treeView ?? throw new ArgumentNullException(nameof(treeView));
+            _settings = AppSettings.Instance;
         }
 
-        public  void updateFileList(MainForm mainForm)
+        /// <summary>
+        /// Updates the file list view with files from the selected node.
+        /// </summary>
+        public void updateFileList(MainForm mainForm)
         {
             mainForm.clearLbFiles();
-            string selectedFile = "";
-            if (mainForm.getSelectedNode() != null)
+
+            TreeNode selectedNode = mainForm.getSelectedNode();
+            if (selectedNode?.Tag == null)
             {
-                TreeNode n = mainForm.getSelectedNode();
-                if (n.Tag != null)
-                {
-                    string tag = ((XmlNodeData)n.Tag).ID;
-                    if (Globals.data.ContainsKey(tag))
-                    {
-                        List<FileItem> fileItem = Globals.data[tag].files;
-                        foreach (FileItem item in fileItem)
-                        {
-                            mainForm.addLbFile(item.caption);
-                        }
-                    }
-                }
+                return;
+            }
+
+            var nodeData = selectedNode.Tag as XmlNodeData;
+            if (nodeData == null)
+            {
+                return;
+            }
+
+            string nodeId = nodeData.ID;
+            if (!_settings.Data.ContainsKey(nodeId))
+            {
+                return;
+            }
+
+            var files = _settings.Data[nodeId].Files;
+            foreach (FileItem file in files)
+            {
+                mainForm.addLbFile(file.Caption);
             }
         }
 
-        public  void addFile(RicherTextBox.RicherTextBox richerTextBox1)
+        /// <summary>
+        /// Adds a new file attachment to the selected node.
+        /// </summary>
+        public void addFile(RicherTextBox.RicherTextBox richerTextBox)
         {
-            if (!Globals.isCloud)
+            EnsureAttachmentDirectoryExists();
+
+            var dialog = new AddFileDialog();
+            if (dialog.ShowDialog() != DialogResult.OK)
             {
-                if (!Directory.Exists((Globals.tempDir + "\\_dat")))
-                    Directory.CreateDirectory(Globals.tempDir + "\\_dat");
+                return;
             }
 
-            AddFileDialog dlg = new AddFileDialog();
-            if (dlg.ShowDialog() == DialogResult.OK)
+            TreeNode selectedNode = _treeView.SelectedNode;
+            if (selectedNode?.Tag == null)
             {
-                String caption = dlg.caption;
-                String file = dlg.file;
-                if (treeView1.SelectedNode != null)
-                {
-                    TreeNode n = treeView1.SelectedNode;
-                    if (n.Tag != null)
-                    {
-                        String tag = ((XmlNodeData)n.Tag).ID;
-                        if (Globals.data.ContainsKey(tag))
-                        {
-                            //    if (Globals.data.Values.Where(a => a.name == caption).Count() > 0)
-                            //  {
-                            //    MessageBox.Show(MainForm.instance, "An item with that caption does allready exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            // }
-                            //else
-                            {
-                                try
-                                {
-                                    if (!Globals.isCloud)
-                                    {
-                                        String m_data = Globals.data[tag].data;
-                                        String origName = file;
-                                        file = new ArkosPadFiles.Files(treeView1).copyFile(file);
-                                        if (file != "")
-                                        {
-                                            FileItem item = new FileItem() { caption = Path.GetFileName(origName), filepath = Path.GetFileName(file) };
-                                            listView1.Items.Add(item.caption);
-
-
-                                            Globals.data[tag].files.Add(item);
-
-
-                                            if (Globals._filename != "")
-                                            {
-                                                new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename);
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Sync.UploadFile(file, int.Parse(tag));
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    MessageBox.Show(MainForm.instance, "Unable to add file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                }
-                            }
-                        }
-                    }
-                }
+                return;
             }
-        }
 
-        public  void removeFile(RicherTextBox.RicherTextBox richerTextBox1)
-        {
+            var nodeData = selectedNode.Tag as XmlNodeData;
+            if (nodeData == null || !_settings.Data.ContainsKey(nodeData.ID))
+            {
+                return;
+            }
+
             try
             {
-                TreeNode n = treeView1.SelectedNode;
-                if (n.Tag != null)
+                if (_settings.IsCloudMode)
                 {
-                    String tag = ((XmlNodeData)n.Tag).ID;
-
-                    if (Globals.isCloud)
-                    {
-                        if (listView1.SelectedItems.Count > 0)
-                        {
-                            int idFile = (int)listView1.SelectedItems[0].Tag;
-                            Sync.DeleteFile(idFile);
-                        }
-                    }
-                    else
-                    {
-
-                        if (Globals.data.ContainsKey(tag))
-                        {
-                            IEnumerable<FileItem> items = Globals.data[tag].files.Where(a => a.caption == MainForm.instance.selectedFile);
-                            if (items.Count() > 0)
-                            {
-                                listView1.Items.Remove(listView1.SelectedItems[0]);
-                                Globals.data[tag].files.Remove(items.First());
-                                new Files(listView1,treeView1).updateFileList(MainForm.instance);
-                                new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename);
-                            }
-                        }
-                    }
-                }
-            }
-            catch { }
-        }
-
-        public  void runFile()
-        {
-            TreeNode n = treeView1.SelectedNode;
-            if (n != null)
-            {
-                String fileName = "";
-                if (n.Tag != null)
-                {
-                    String tag = ((XmlNodeData)n.Tag).ID;
-                    if (Globals.data.ContainsKey(tag))
-                    {
-                        fileName = Globals.data[tag].files.Where(a => a.caption == listView1.SelectedItems[0].Text).First().filepath;
-                        fileName = Path.GetDirectoryName(Globals._filename) + "\\_dat" + "\\" + fileName;
-                        if (File.Exists(fileName))
-                        {
-                            Process p = new Process();
-                            p.StartInfo = new ProcessStartInfo()
-                            {
-                                UseShellExecute = true,
-                                FileName = fileName
-                            };
-
-                            p.Start();
-                        }
-                        else
-                        {
-                            MessageBox.Show(MainForm.instance, "The file does not exist.");
-                        }
-                    }
-                }
-            }
-        }
-
-        public  void exportFile(TreeNode n)
-        {
-            
-            String tag = ((XmlNodeData)n.Tag).ID;
-            if (Globals.data.ContainsKey(tag))
-            {
-                
-                if (!Globals.isCloud)
-                {
-                    String fileName = Globals.data[tag].files.Where(a => a.caption == listView1.SelectedItems[0].Text).First().filepath;
-                    fileName = Path.GetDirectoryName(Globals._filename) + "\\_dat" + "\\" + fileName;
-                    SaveFileDialog saveFileDialog = new SaveFileDialog();
-                    saveFileDialog.Title = "Save " + Path.GetExtension(fileName) + " Document";
-                    saveFileDialog.Filter = Path.GetExtension(fileName) + " Files (*" + Path.GetExtension(fileName) + ")|*" + Path.GetExtension(fileName);
-                    saveFileDialog.FileName = Path.GetFileName(Application.StartupPath + "\\export_file" + Path.GetExtension(fileName));
-                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                    {
-                        File.Copy(Path.GetDirectoryName(Globals._filename) + "\\_dat" + "\\" + Path.GetFileName(fileName), saveFileDialog.FileName);
-                        MessageBox.Show(MainForm.instance, "File saved as\n" + saveFileDialog.FileName, "File saved.", MessageBoxButtons.OK, MessageBoxIcon.None);
-                    }
+                    UploadFileToCloud(dialog.file, nodeData.ID);
                 }
                 else
                 {
-                    String fileName = "export.file";
-                    SaveFileDialog saveFileDialog = new SaveFileDialog();
-                    saveFileDialog.Title = "Save " + Path.GetExtension(fileName) + " Document";
-                    saveFileDialog.Filter = Path.GetExtension(fileName) + " Files (*" + Path.GetExtension(fileName) + ")|*" + Path.GetExtension(fileName);
-                    saveFileDialog.FileName = Path.GetFileName(Application.StartupPath + "\\export_file" + Path.GetExtension(fileName));
-                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                    {
-                        Sync.DownloadFile((int)listView1.SelectedItems[0].Tag, saveFileDialog.FileName);
-                        MessageBox.Show(MainForm.instance, "File saved as\n" + saveFileDialog.FileName, "File saved.", MessageBoxButtons.OK, MessageBoxIcon.None);
-                    }
+                    AddLocalFile(dialog.file, nodeData.ID, richerTextBox);
+                }
+            }
+            catch (Exception)
+            {
+                ShowError(Constants.Messages.UnableToAddFile);
+            }
+        }
+
+        /// <summary>
+        /// Removes the selected file attachment from the node.
+        /// </summary>
+        public void removeFile(RicherTextBox.RicherTextBox richerTextBox)
+        {
+            try
+            {
+                TreeNode selectedNode = _treeView.SelectedNode;
+                if (selectedNode?.Tag == null)
+                {
+                    return;
+                }
+
+                var nodeData = selectedNode.Tag as XmlNodeData;
+                if (nodeData == null)
+                {
+                    return;
+                }
+
+                if (_settings.IsCloudMode)
+                {
+                    RemoveCloudFile();
+                }
+                else
+                {
+                    RemoveLocalFile(nodeData.ID, richerTextBox);
+                }
+            }
+            catch (Exception)
+            {
+                // Silently handle removal errors
+            }
+        }
+
+        /// <summary>
+        /// Opens the selected file attachment.
+        /// </summary>
+        public void runFile()
+        {
+            TreeNode selectedNode = _treeView.SelectedNode;
+            if (selectedNode?.Tag == null)
+            {
+                return;
+            }
+
+            var nodeData = selectedNode.Tag as XmlNodeData;
+            if (nodeData == null || !_settings.Data.ContainsKey(nodeData.ID))
+            {
+                return;
+            }
+
+            if (_listView.SelectedItems.Count == 0)
+            {
+                return;
+            }
+
+            string selectedFileName = _listView.SelectedItems[0].Text;
+            var fileItem = _settings.Data[nodeData.ID].Files
+                .FirstOrDefault(f => f.Caption == selectedFileName);
+
+            if (fileItem == null)
+            {
+                return;
+            }
+
+            string filePath = GetAttachmentFilePath(fileItem.FilePath);
+            
+            if (!File.Exists(filePath))
+            {
+                MessageBox.Show(MainForm.instance, Constants.Messages.FileDoesNotExist);
+                return;
+            }
+
+            LaunchFile(filePath);
+        }
+
+        /// <summary>
+        /// Exports the selected file attachment to a user-specified location.
+        /// </summary>
+        public void exportFile(TreeNode node)
+        {
+            var nodeData = node?.Tag as XmlNodeData;
+            if (nodeData == null || !_settings.Data.ContainsKey(nodeData.ID))
+            {
+                return;
+            }
+
+            if (_settings.IsCloudMode)
+            {
+                ExportCloudFile();
+            }
+            else
+            {
+                ExportLocalFile(nodeData.ID);
+            }
+        }
+
+        private void EnsureAttachmentDirectoryExists()
+        {
+            if (_settings.IsCloudMode)
+            {
+                return;
+            }
+
+            string attachmentDir = Path.Combine(_settings.TempDirectory, Constants.AttachmentsFolderName);
+            if (!Directory.Exists(attachmentDir))
+            {
+                Directory.CreateDirectory(attachmentDir);
+            }
+        }
+
+        private void UploadFileToCloud(string filePath, string nodeId)
+        {
+            Sync.UploadFile(filePath, int.Parse(nodeId));
+        }
+
+        private void AddLocalFile(string sourcePath, string nodeId, 
+            RicherTextBox.RicherTextBox richerTextBox)
+        {
+            string destinationPath = new ArkosPadFiles.Files(_treeView).copyFile(sourcePath);
+            
+            if (string.IsNullOrEmpty(destinationPath))
+            {
+                return;
+            }
+
+            var fileItem = new FileItem
+            {
+                Caption = Path.GetFileName(sourcePath),
+                FilePath = Path.GetFileName(destinationPath)
+            };
+
+            _listView.Items.Add(fileItem.Caption);
+            _settings.Data[nodeId].Files.Add(fileItem);
+
+            SaveChangesIfNeeded(richerTextBox);
+        }
+
+        private void RemoveCloudFile()
+        {
+            if (_listView.SelectedItems.Count == 0)
+            {
+                return;
+            }
+
+            int fileId = (int)_listView.SelectedItems[0].Tag;
+            Sync.DeleteFile(fileId);
+        }
+
+        private void RemoveLocalFile(string nodeId, RicherTextBox.RicherTextBox richerTextBox)
+        {
+            if (!_settings.Data.ContainsKey(nodeId))
+            {
+                return;
+            }
+
+            string selectedFileName = MainForm.instance.selectedFile;
+            var fileItem = _settings.Data[nodeId].Files
+                .FirstOrDefault(f => f.Caption == selectedFileName);
+
+            if (fileItem == null)
+            {
+                return;
+            }
+
+            _listView.Items.Remove(_listView.SelectedItems[0]);
+            _settings.Data[nodeId].Files.Remove(fileItem);
+
+            updateFileList(MainForm.instance);
+            new ArkosPadFiles.Files(_treeView).exportToXml(richerTextBox, _settings.CurrentFileName);
+        }
+
+        private void ExportLocalFile(string nodeId)
+        {
+            if (_listView.SelectedItems.Count == 0)
+            {
+                return;
+            }
+
+            string selectedFileName = _listView.SelectedItems[0].Text;
+            var fileItem = _settings.Data[nodeId].Files
+                .FirstOrDefault(f => f.Caption == selectedFileName);
+
+            if (fileItem == null)
+            {
+                return;
+            }
+
+            string sourcePath = GetAttachmentFilePath(fileItem.FilePath);
+            string extension = Path.GetExtension(sourcePath);
+
+            using (var saveDialog = new SaveFileDialog())
+            {
+                saveDialog.Title = $"Save {extension} Document";
+                saveDialog.Filter = $"{extension} Files (*{extension})|*{extension}";
+                saveDialog.FileName = $"export_file{extension}";
+
+                if (saveDialog.ShowDialog() == DialogResult.OK)
+                {
+                    File.Copy(sourcePath, saveDialog.FileName);
+                    ShowInfo($"File saved as\n{saveDialog.FileName}", "File saved.");
                 }
             }
         }
 
+        private void ExportCloudFile()
+        {
+            if (_listView.SelectedItems.Count == 0)
+            {
+                return;
+            }
+
+            using (var saveDialog = new SaveFileDialog())
+            {
+                saveDialog.Title = "Save Document";
+                saveDialog.Filter = "All Files (*.*)|*.*";
+                saveDialog.FileName = "export_file";
+
+                if (saveDialog.ShowDialog() == DialogResult.OK)
+                {
+                    int fileId = (int)_listView.SelectedItems[0].Tag;
+                    Sync.DownloadFile(fileId, saveDialog.FileName);
+                    ShowInfo($"File saved as\n{saveDialog.FileName}", "File saved.");
+                }
+            }
+        }
+
+        private string GetAttachmentFilePath(string fileName)
+        {
+            string attachmentDir = Path.GetDirectoryName(_settings.CurrentFileName);
+            return Path.Combine(attachmentDir, Constants.AttachmentsFolderName, fileName);
+        }
+
+        private void LaunchFile(string filePath)
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    UseShellExecute = true,
+                    FileName = filePath
+                }
+            };
+            process.Start();
+        }
+
+        private void SaveChangesIfNeeded(RicherTextBox.RicherTextBox richerTextBox)
+        {
+            if (!string.IsNullOrEmpty(_settings.CurrentFileName))
+            {
+                new ArkosPadFiles.Files(_treeView).exportToXml(richerTextBox, _settings.CurrentFileName);
+            }
+        }
+
+        private void ShowError(string message)
+        {
+            MessageBox.Show(MainForm.instance, message, Constants.Messages.ErrorTitle, 
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        private void ShowInfo(string message, string title)
+        {
+            MessageBox.Show(MainForm.instance, message, title, 
+                MessageBoxButtons.OK, MessageBoxIcon.None);
+        }
     }
 }

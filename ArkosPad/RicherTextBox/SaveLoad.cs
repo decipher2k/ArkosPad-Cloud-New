@@ -1,93 +1,114 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 
 namespace RicherTextBox
 {
-    class SaveLoad
+    /// <summary>
+    /// Handles save and load operations for tree nodes in RicherTextBox context.
+    /// </summary>
+    internal static class SaveLoad
     {
-        //We use this in the export and the saveNode 
-        //functions, though it's only instantiated once.
-        private StreamWriter sr;
-
-        
-        
-
-        //Open the XML file, and start to populate the treeview
-        
-        //This function is called recursively until all nodes are loaded
-        public static void addTreeNode(XmlNode xmlNode, TreeNode treeNode, String activeNode=null)
+        /// <summary>
+        /// Adds tree nodes from XML data recursively.
+        /// </summary>
+        /// <param name="xmlNode">The XML node to process.</param>
+        /// <param name="treeNode">The tree node to add children to.</param>
+        /// <param name="activeNodeId">Optional ID of the node to select.</param>
+        public static void addTreeNode(XmlNode xmlNode, TreeNode treeNode, string activeNodeId = null)
         {
-            XmlNode xNode= xmlNode;
-            TreeNode tNode;
-            XmlNodeList xNodeList;
+            AddTreeNode(xmlNode, treeNode, activeNodeId);
+        }
 
-           
-
-            if (xmlNode.HasChildNodes) //The current node has children
+        /// <summary>
+        /// Adds tree nodes from XML data recursively.
+        /// </summary>
+        /// <param name="xmlNode">The XML node to process.</param>
+        /// <param name="treeNode">The tree node to add children to.</param>
+        /// <param name="activeNodeId">Optional ID of the node to select.</param>
+        public static void AddTreeNode(XmlNode xmlNode, TreeNode treeNode, string activeNodeId = null)
+        {
+            if (!xmlNode.HasChildNodes)
             {
-                xNodeList = xmlNode.ChildNodes;
-
-                for (int x = 0; x <= xNodeList.Count - 1; x++)
-                //Loop through the child nodes
-                {
-                    xNode = xmlNode.ChildNodes[x];
-                    TreeNode n = new TreeNode(xNode.Attributes[0].Value);
-                    n.Tag = xNode.Attributes[1].Value;
-                    treeNode.Nodes.Add(n);
-                    tNode = treeNode.Nodes[x];
-
-                    String id = xmlNode.Name.Replace("ID", "");
-                    if (id == activeNode)
-                    {
-                        treeNode.TreeView.SelectedNode = treeNode;
-                    }
-
-                    if (xmlNode.Attributes.Count > 2)
-                    {
-                        if (xNode.Attributes[2].Value == "1")
-                        {
-
-                            n.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Bold);
-                        }
-                        else
-                        {
-                            n.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
-                        }
-                    }
-                    addTreeNode(xNode, tNode,activeNode);
-                }
+                ProcessLeafNode(xmlNode, treeNode, activeNodeId);
+                return;
             }
-            else //No children, so add the outer xml (trimming off whitespace)
+
+            foreach (XmlNode childXmlNode in xmlNode.ChildNodes)
             {
-                String id = xmlNode.Name.Replace("ID", "");
-                if (id == activeNode)
-                {
-                    treeNode.TreeView.SelectedNode = treeNode;
-                }
+                TreeNode newTreeNode = CreateTreeNodeFromXml(childXmlNode);
+                treeNode.Nodes.Add(newTreeNode);
 
-                if (xmlNode.Attributes.Count > 2)
-                {
-                    if (xNode.Attributes[2].Value == "1")
-                    {
+                SetActiveNodeIfMatch(treeNode, xmlNode, activeNodeId);
+                ApplyNodeStyle(newTreeNode, childXmlNode);
 
-                        treeNode.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Bold);
-                    }
-                    else
-                    {
-                        treeNode.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
-                    }
-                }
-
-                treeNode.Text = xNode.Attributes[0].Value;
+                AddTreeNode(childXmlNode, newTreeNode, activeNodeId);
             }
         }
 
-       
+        #region Private Helper Methods
 
+        private static void ProcessLeafNode(XmlNode xmlNode, TreeNode treeNode, string activeNodeId)
+        {
+            string nodeId = ExtractNodeId(xmlNode);
+            SetActiveNodeIfMatch(treeNode, nodeId, activeNodeId);
+            ApplyNodeStyle(treeNode, xmlNode);
+
+            if (xmlNode.Attributes?.Count > 0)
+            {
+                treeNode.Text = xmlNode.Attributes[0].Value;
+            }
+        }
+
+        private static TreeNode CreateTreeNodeFromXml(XmlNode xmlNode)
+        {
+            string nodeName = xmlNode.Attributes?.Count > 0 
+                ? xmlNode.Attributes[0].Value 
+                : string.Empty;
+
+            string nodeTag = xmlNode.Attributes?.Count > 1 
+                ? xmlNode.Attributes[1].Value 
+                : string.Empty;
+
+            return new TreeNode(nodeName)
+            {
+                Tag = nodeTag
+            };
+        }
+
+        private static string ExtractNodeId(XmlNode xmlNode)
+        {
+            return xmlNode.Name.Replace("ID", string.Empty);
+        }
+
+        private static void SetActiveNodeIfMatch(TreeNode parentNode, XmlNode xmlNode, string activeNodeId)
+        {
+            string nodeId = ExtractNodeId(xmlNode);
+            SetActiveNodeIfMatch(parentNode, nodeId, activeNodeId);
+        }
+
+        private static void SetActiveNodeIfMatch(TreeNode parentNode, string nodeId, string activeNodeId)
+        {
+            if (nodeId == activeNodeId && parentNode.TreeView != null)
+            {
+                parentNode.TreeView.SelectedNode = parentNode;
+            }
+        }
+
+        private static void ApplyNodeStyle(TreeNode treeNode, XmlNode xmlNode)
+        {
+            if (xmlNode.Attributes?.Count <= 2)
+            {
+                return;
+            }
+
+            bool isFocused = xmlNode.Attributes[2].Value == "1";
+            var fontStyle = isFocused ? FontStyle.Bold : FontStyle.Regular;
+            treeNode.NodeFont = new Font(SystemFonts.DefaultFont, fontStyle);
+        }
+
+        #endregion
     }
 }

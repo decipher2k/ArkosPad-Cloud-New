@@ -1,308 +1,414 @@
-﻿using RicherTextBoxDemo.DtO;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using System.Text;
 using System.Windows.Forms;
-using System.Xml;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using RicherTextBoxDemo.Core;
+using RicherTextBoxDemo.DtO;
 
 namespace RicherTextBoxDemo.ArkosPadFiles
 {
-    class Nodes
+    /// <summary>
+    /// Handles tree node serialization and deserialization operations.
+    /// </summary>
+    internal class Nodes
     {
-        //We use this in the export and the saveNode 
-        //functions, though it's only instantiated once.
-        private StreamWriter sr;
+        private readonly AppSettings _settings;
 
-  
-        public static void exportNodeToMindmap(TreeNodeCollection tnc, StreamWriter sr)
+        public Nodes()
         {
-
-            foreach (TreeNode node in tnc)
-            {
-                
-                    String tpl = "";
-                    if (Globals.data[((XmlNodeData)node.Tag).ID.ToString()].data.Trim().Length>1)
-                    {
-                        tpl = File.ReadAllText("templates\\mm_details_node.mm");
-                        tpl = tpl.Replace("$$$NODE$$$", node.Text);
-                        tpl = tpl.Replace("$$$TAG$$$", node.Tag.ToString());
-
-                    RicherTextBox.RicherTextBox tb = new RicherTextBox.RicherTextBox();
-                    tb.Rtf = Globals.data[((XmlNodeData)node.Tag).ID].data;
-                    tpl = tpl.Replace("$$$TEXT$$$","\r\n"+tb.Text.Replace("\"","\\\"")+"\r\n");
-                    }
-                    else
-                    {
-                        tpl = File.ReadAllText("templates\\mm_std_node.mm");
-                        tpl = tpl.Replace("$$$NODE$$$", node.Text);
-                        tpl = tpl.Replace("$$$TAG$$$", node.Tag.ToString());
-                    }
-
-                    sr.Write(tpl);
-
-                    if(node.Nodes.Count>0)
-                        exportNodeToMindmap(node.Nodes, sr);
-
-                    sr.WriteLine("</node>");
-                }
-                 
+            _settings = AppSettings.Instance;
         }
 
+        #region MindMap Export
 
-
-        public static void saveNode(TreeNodeCollection tnc, StreamWriter sr, bool resetFocus=false, bool importFiles=false)
+        /// <summary>
+        /// Exports tree nodes to MindMap format.
+        /// </summary>
+        public static void exportNodeToMindmap(TreeNodeCollection nodes, StreamWriter writer)
         {
-            foreach (TreeNode node in tnc)
+            foreach (TreeNode node in nodes)
             {
-                    if (Globals.isCloud || importFiles)
+                var nodeData = node.Tag as XmlNodeData;
+                if (nodeData == null)
                 {
-                    if (!importFiles)
-                    {
-                        String id = ((XmlNodeData)node.Tag).ID;
-                        Sync.UpdateOrAddNode(Globals.data[((XmlNodeData)node.Tag).ID].data, Globals.data[((XmlNodeData)node.Tag).ID].weight, node);
-                        PageDto dto = new PageDto() { session = Globals.cloudSession, url = Sync.getUrlFromTreeNode(node) };
-                        String idNode = Sync.HttpPost(Newtonsoft.Json.JsonConvert.SerializeObject(dto), "/api/MarkdownPage/GetIdByPath");
-                        foreach (FileItem f in Globals.data[id].files)
-                        {
-                            Sync.UploadFile(Globals.tempDir + "\\_dat\\" + f.filepath, int.Parse(idNode), f.caption);
-                        }
-                    }
-                    else
-                    {
-                        String id = ((XmlNodeData)node.Tag).ID;
-                        List<FileDto.fileCapsule> fc = Sync.GetFiles(int.Parse(id));
-                        if (fc != null)
-                        {
-                            foreach (FileDto.fileCapsule f in fc)
-                            {
-                                int fileId = f.file.id;
-                                
-                                Sync.DownloadFile(fileId, Globals.tempDir + "\\_dat\\" + f.file.encName);
-                                Globals.data[id].files.Add(new FileItem() { caption = f.file.fileName, filepath = f.file.encName, idCloud = fileId });
-                            }
-                        }
-                    }
+                    continue;
                 }
 
-                if (resetFocus)
+                string template = GetMindMapTemplate(nodeData);
+                template = template.Replace("$$$NODE$$$", node.Text);
+                template = template.Replace("$$$TAG$$$", node.Tag.ToString());
+
+                if (HasNodeData(nodeData))
                 {
-                    Globals.data[((XmlNodeData)node.Tag).ID].focus = false;
-                    node.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
-                }
-                else if (Globals.data[((XmlNodeData)node.Tag).ID].focus)
-                {
-                    node.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Bold);
+                    string textContent = GetNodeTextContent(nodeData);
+                    template = template.Replace("$$$TEXT$$$", $"\r\n{textContent}\r\n");
                 }
 
-                //If we have child nodes, we'll write 
-                //a parent node, then iterrate through
-                //the children
+                writer.Write(template);
+
                 if (node.Nodes.Count > 0)
                 {
-                    if(!Globals.isCloud)
-                        sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\""+node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (Globals.data[((XmlNodeData)node.Tag).ID].focus?"1":"0") +"\">");
-
-                    saveNode(node.Nodes, sr,resetFocus,importFiles);
-
-                    if (!Globals.isCloud)
-                        sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
-                }
-                else //No child nodes, so we just write the text
-                {
-                    if (!Globals.isCloud)
-                    {
-                        sr.WriteLine("<ID" + ((XmlNodeData)node.Tag).ID + " name=\"" + node.Text + "\" tag=\"" + ((XmlNodeData)node.Tag).ID + "\" focus=\"" + (Globals.data[((XmlNodeData)node.Tag).ID].focus ? "1" : "0") + "\">");
-                        sr.WriteLine("</ID" + ((XmlNodeData)node.Tag).ID + ">");
-                    }
+                    exportNodeToMindmap(node.Nodes, writer);
                 }
 
-                
+                writer.WriteLine("</node>");
             }
         }
 
-        //Open the XML file, and start to populate the treeview
-        
-        //This function is called recursively until all nodes are loaded
-        public void addTreeNode(XmlNode xmlNode, TreeNode treeNode, Dictionary<String, TreeItem> data, String activeNode=null)
+        private static string GetMindMapTemplate(XmlNodeData nodeData)
         {
-            XmlNode xNode= xmlNode;
-            TreeNode tNode;
-            XmlNodeList xNodeList;
+            string templateFile = HasNodeData(nodeData)
+                ? "templates\\mm_details_node.mm"
+                : "templates\\mm_std_node.mm";
 
-           
+            return File.ReadAllText(templateFile);
+        }
 
-            if (xmlNode.HasChildNodes) //The current node has children
+        private static bool HasNodeData(XmlNodeData nodeData)
+        {
+            return AppSettings.Instance.Data.ContainsKey(nodeData.ID) &&
+                   !string.IsNullOrWhiteSpace(AppSettings.Instance.Data[nodeData.ID].Data);
+        }
+
+        private static string GetNodeTextContent(XmlNodeData nodeData)
+        {
+            using (var richTextBox = new RicherTextBox.RicherTextBox())
             {
-                xNodeList = xmlNode.ChildNodes;
-                
-
-                for (int x = 0; x <= xNodeList.Count - 1; x++)
-                //Loop through the child nodes
-                {
-                    String id;
-      
-                    xNode = xmlNode.ChildNodes[x];
-
-                    if (xNode.Name != "Root")
-                    {
-                        id = xNode.Name.Replace("ID", "");
-                    }
-                    else
-                    {
-                        id = "1";
-                    }
-
-                    TreeNode n = new TreeNode(xNode.Attributes[0].Value);
-                    n.Tag = new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = Globals._maxWeight+1 };
-                    Globals._maxWeight++;
-                    treeNode.Nodes.Add(n);
-                    tNode = treeNode.Nodes[x];
-
-                    
-                    if (id == activeNode)
-                    {
-                        treeNode.TreeView.SelectedNode = treeNode;
-                    }
-
-                    if (xmlNode.Attributes.Count > 2)
-                    {
-                        if (xNode.Attributes[2].Value == "1")
-                        {
-
-                            n.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Bold);
-                        }
-                        else
-                        {
-                            n.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
-                        }
-                    }
-                    addTreeNode(xNode, tNode,data, activeNode);                  
-                }
-                var items = treeNode.Nodes.Cast<TreeNode>().OrderBy(x1 => ((XmlNodeData)x1.Tag).weight).ToList();
-                treeNode.Nodes.Clear();
-                treeNode.Nodes.AddRange(items.ToArray());
-            }
-            else //No children, so add the outer xml (trimming off whitespace)
-            {
-                String id = xmlNode.Name.Replace("ID", "");
-                if (id == activeNode)
-                {
-                    treeNode.TreeView.SelectedNode = treeNode;
-                }
-
-                if (xmlNode.Attributes.Count > 2)
-                {
-                    if (xNode.Attributes[2].Value == "1")
-                    {
-
-                        treeNode.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Bold);
-                    }
-                    else
-                    {
-                        treeNode.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
-                    }
-                }
-                if (xNode.Attributes.Count > 0)
-                {
-                    treeNode.Text = xNode.Attributes[0].Value;
-                    treeNode.Tag = new XmlNodeData() { ID = id, focus = xNode.Attributes[2].Value == "1" ? true : false, weight = Globals._maxWeight + 1 };
-                    Globals._maxWeight++;
-                }               
+                richTextBox.Rtf = AppSettings.Instance.Data[nodeData.ID].Data;
+                return richTextBox.Text.Replace("\"", "\\\"");
             }
         }
 
-        public static Dictionary<String, TreeItem> addTreeNodeSync(SyncDTO xmlNode, TreeNode treeNode, Dictionary<String, TreeItem> data, String activeNode = null)
-        {
-            SyncDTO xNode = xmlNode;
-            TreeNode tNode;
-            List<SyncDTO> xNodeList;
+        #endregion
 
-            TreeItem item = new TreeItem();
-            item.weight = xmlNode.weight;
-            item.name = xmlNode.name;
-            if (xmlNode.data.Trim().Length > 0)
+        #region XML Save Operations
+
+        /// <summary>
+        /// Saves tree nodes to XML format.
+        /// </summary>
+        public static void saveNode(TreeNodeCollection nodes, StreamWriter writer, 
+            bool resetFocus = false, bool importFiles = false)
+        {
+            var settings = AppSettings.Instance;
+
+            foreach (TreeNode node in nodes)
             {
-                item.data = Sync.toRtf(xmlNode.data);
+                var nodeData = node.Tag as XmlNodeData;
+                if (nodeData == null)
+                {
+                    continue;
+                }
+
+                ProcessCloudSync(node, nodeData, importFiles, settings);
+                UpdateNodeFocusState(node, nodeData, resetFocus, settings);
+                WriteNodeToXml(node, nodeData, writer, resetFocus, importFiles, settings);
+            }
+        }
+
+        private static void ProcessCloudSync(TreeNode node, XmlNodeData nodeData, 
+            bool importFiles, AppSettings settings)
+        {
+            if (!settings.IsCloudMode && !importFiles)
+            {
+                return;
+            }
+
+            if (!importFiles)
+            {
+                UploadNodeToCloud(node, nodeData, settings);
             }
             else
             {
-                item.data = "";
+                DownloadFilesFromCloud(nodeData, settings);
             }
+        }
 
-            item.focus = xmlNode.focus;
-            if(xmlNode.ID!="1")
-                data.Add(xmlNode.ID, item);
+        private static void UploadNodeToCloud(TreeNode node, XmlNodeData nodeData, AppSettings settings)
+        {
+            string nodeId = nodeData.ID;
+            var treeItem = settings.Data[nodeId];
 
+            Sync.UpdateOrAddNode(treeItem.Data, treeItem.Weight, node);
 
-            if (xmlNode.children.Count>0) //The current node has children
+            PageDto dto = new PageDto
             {
-                xNodeList = xmlNode.children;
+                session = settings.CloudSession,
+                url = Sync.getUrlFromTreeNode(node)
+            };
 
+            string cloudNodeId = Sync.HttpPost(
+                Newtonsoft.Json.JsonConvert.SerializeObject(dto),
+                Constants.ApiEndpoints.GetIdByPath);
 
-                for (int x = 0; x <= xNodeList.Count - 1; x++)
-                //Loop through the child nodes
-                {
-                    String id = xmlNode.ID;
-                    xNode = xmlNode.children[x];
-                    TreeNode n = new TreeNode(xNode.name);
-                    n.Tag = new XmlNodeData() { ID = xNode.ID, focus = xNode.focus, weight = xNode.weight };
-                    
-                    treeNode.Nodes.Add(n);
-                    tNode = treeNode.Nodes[x];
-
-
-                    if (id == activeNode)
-                    {
-                        treeNode.TreeView.SelectedNode = treeNode;
-                    }
-
-                    
-                        if (xNode.focus)
-                        {
-
-                            n.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Bold);
-                        }
-                        else
-                        {
-                            n.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
-                        }
-                    
-                    data=addTreeNodeSync(xNode, tNode, data, activeNode);
-                }
-                var items = treeNode.Nodes.Cast<TreeNode>().OrderBy(x1 => ((XmlNodeData)x1.Tag).weight).ToList();
-                treeNode.Nodes.Clear();
-                treeNode.Nodes.AddRange(items.ToArray());
-            }
-            else //No children, so add the outer xml (trimming off whitespace)
+            foreach (FileItem file in treeItem.Files)
             {
-                String id = xmlNode.ID;
-                if (id == activeNode)
-                {
-                    treeNode.TreeView.SelectedNode = treeNode;
-                }
-
-              
-                    if (xNode.focus)
-                    {
-
-                        treeNode.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Bold);
-                    }
-                    else
-                    {
-                        treeNode.NodeFont = new System.Drawing.Font(SystemFonts.DefaultFont, FontStyle.Regular);
-                    }
-               
-
-                treeNode.Text = xNode.name;
-                treeNode.Tag = new XmlNodeData() { ID = xNode.ID, focus = xNode.focus, weight = xNode.weight };
-            
+                string filePath = Path.Combine(settings.TempDirectory, Constants.AttachmentsFolderName, file.FilePath);
+                Sync.UploadFile(filePath, int.Parse(cloudNodeId), file.Caption);
             }
+        }
+
+        private static void DownloadFilesFromCloud(XmlNodeData nodeData, AppSettings settings)
+        {
+            string nodeId = nodeData.ID;
+            var cloudFiles = Sync.GetFiles(int.Parse(nodeId));
+
+            if (cloudFiles == null)
+            {
+                return;
+            }
+
+            foreach (var fileCapsule in cloudFiles)
+            {
+                int fileId = fileCapsule.file.id;
+                string localPath = Path.Combine(settings.TempDirectory, Constants.AttachmentsFolderName, fileCapsule.file.encName);
+
+                Sync.DownloadFile(fileId, localPath);
+
+                settings.Data[nodeId].Files.Add(new FileItem
+                {
+                    Caption = fileCapsule.file.fileName,
+                    FilePath = fileCapsule.file.encName,
+                    CloudId = fileId
+                });
+            }
+        }
+
+        private static void UpdateNodeFocusState(TreeNode node, XmlNodeData nodeData, 
+            bool resetFocus, AppSettings settings)
+        {
+            if (!settings.Data.ContainsKey(nodeData.ID))
+            {
+                return;
+            }
+
+            if (resetFocus)
+            {
+                settings.Data[nodeData.ID].IsFocused = false;
+                node.NodeFont = new Font(SystemFonts.DefaultFont, FontStyle.Regular);
+            }
+            else if (settings.Data[nodeData.ID].IsFocused)
+            {
+                node.NodeFont = new Font(SystemFonts.DefaultFont, FontStyle.Bold);
+            }
+        }
+
+        private static void WriteNodeToXml(TreeNode node, XmlNodeData nodeData, 
+            StreamWriter writer, bool resetFocus, bool importFiles, AppSettings settings)
+        {
+            if (settings.IsCloudMode)
+            {
+                return;
+            }
+
+            bool isFocused = settings.Data.ContainsKey(nodeData.ID) && 
+                             settings.Data[nodeData.ID].IsFocused;
+
+            string focusValue = isFocused ? "1" : "0";
+            string openTag = $"<ID{nodeData.ID} name=\"{node.Text}\" tag=\"{nodeData.ID}\" focus=\"{focusValue}\">";
+            string closeTag = $"</ID{nodeData.ID}>";
+
+            writer.WriteLine(openTag);
+
+            if (node.Nodes.Count > 0)
+            {
+                saveNode(node.Nodes, writer, resetFocus, importFiles);
+            }
+
+            writer.WriteLine(closeTag);
+        }
+
+        #endregion
+
+        #region XML Load Operations
+
+        /// <summary>
+        /// Adds tree nodes from XML data recursively.
+        /// </summary>
+        public void addTreeNode(System.Xml.XmlNode xmlNode, TreeNode treeNode, 
+            Dictionary<string, TreeItem> data, string activeNodeId = null)
+        {
+            if (!xmlNode.HasChildNodes)
+            {
+                ProcessLeafNode(xmlNode, treeNode, activeNodeId);
+                return;
+            }
+
+            foreach (System.Xml.XmlNode childXmlNode in xmlNode.ChildNodes)
+            {
+                string nodeId = GetNodeIdFromXml(childXmlNode);
+                TreeNode newTreeNode = CreateTreeNodeFromXml(childXmlNode, nodeId);
+
+                treeNode.Nodes.Add(newTreeNode);
+                SetActiveNode(treeNode, nodeId, activeNodeId);
+                ApplyNodeStyle(newTreeNode, childXmlNode);
+
+                addTreeNode(childXmlNode, newTreeNode, data, activeNodeId);
+            }
+
+            SortChildNodesByWeight(treeNode);
+        }
+
+        /// <summary>
+        /// Adds tree nodes from sync data (cloud) recursively.
+        /// </summary>
+        public static Dictionary<string, TreeItem> addTreeNodeSync(SyncDTO syncData, 
+            TreeNode treeNode, Dictionary<string, TreeItem> data, string activeNodeId = null)
+        {
+            var treeItem = CreateTreeItemFromSync(syncData);
+
+            if (syncData.ID != Constants.RootNodeId)
+            {
+                data.Add(syncData.ID, treeItem);
+            }
+
+            if (syncData.Children.Count == 0)
+            {
+                ProcessSyncLeafNode(syncData, treeNode, activeNodeId);
+                return data;
+            }
+
+            foreach (var childSyncData in syncData.Children)
+            {
+                TreeNode childNode = CreateTreeNodeFromSync(childSyncData);
+                treeNode.Nodes.Add(childNode);
+
+                SetActiveNode(treeNode, syncData.ID, activeNodeId);
+                ApplySyncNodeStyle(childNode, childSyncData);
+
+                data = addTreeNodeSync(childSyncData, childNode, data, activeNodeId);
+            }
+
+            SortChildNodesByWeight(treeNode);
             return data;
-        }       
+        }
+
+        #endregion
+
+        #region Private Helper Methods
+
+        private void ProcessLeafNode(System.Xml.XmlNode xmlNode, TreeNode treeNode, string activeNodeId)
+        {
+            string nodeId = xmlNode.Name.Replace("ID", "");
+            SetActiveNode(treeNode, nodeId, activeNodeId);
+            ApplyNodeStyle(treeNode, xmlNode);
+
+            if (xmlNode.Attributes?.Count > 0)
+            {
+                treeNode.Text = xmlNode.Attributes[0].Value;
+                treeNode.Tag = new XmlNodeData
+                {
+                    ID = nodeId,
+                    focus = xmlNode.Attributes.Count > 2 && xmlNode.Attributes[2].Value == "1",
+                    weight = ++_settings.MaxWeight
+                };
+            }
+        }
+
+        private static void ProcessSyncLeafNode(SyncDTO syncData, TreeNode treeNode, string activeNodeId)
+        {
+            SetActiveNode(treeNode, syncData.ID, activeNodeId);
+            ApplySyncNodeStyle(treeNode, syncData);
+
+            treeNode.Text = syncData.Name;
+            treeNode.Tag = new XmlNodeData
+            {
+                ID = syncData.ID,
+                focus = syncData.IsFocused,
+                weight = syncData.Weight
+            };
+        }
+
+        private string GetNodeIdFromXml(System.Xml.XmlNode xmlNode)
+        {
+            return xmlNode.Name == Constants.RootNodeName
+                ? Constants.RootNodeId
+                : xmlNode.Name.Replace("ID", "");
+        }
+
+        private TreeNode CreateTreeNodeFromXml(System.Xml.XmlNode xmlNode, string nodeId)
+        {
+            bool isFocused = xmlNode.Attributes?.Count > 2 && xmlNode.Attributes[2].Value == "1";
+
+            var treeNode = new TreeNode(xmlNode.Attributes?[0]?.Value ?? string.Empty)
+            {
+                Tag = new XmlNodeData
+                {
+                    ID = nodeId,
+                    focus = isFocused,
+                    weight = ++_settings.MaxWeight
+                }
+            };
+
+            return treeNode;
+        }
+
+        private static TreeNode CreateTreeNodeFromSync(SyncDTO syncData)
+        {
+            return new TreeNode(syncData.Name)
+            {
+                Tag = new XmlNodeData
+                {
+                    ID = syncData.ID,
+                    focus = syncData.IsFocused,
+                    weight = syncData.Weight
+                }
+            };
+        }
+
+        private static TreeItem CreateTreeItemFromSync(SyncDTO syncData)
+        {
+            string rtfData = string.IsNullOrWhiteSpace(syncData.Data)
+                ? string.Empty
+                : Sync.toRtf(syncData.Data);
+
+            return new TreeItem
+            {
+                Weight = syncData.Weight,
+                Name = syncData.Name,
+                Data = rtfData,
+                IsFocused = syncData.IsFocused
+            };
+        }
+
+        private static void SetActiveNode(TreeNode parentNode, string nodeId, string activeNodeId)
+        {
+            if (nodeId == activeNodeId && parentNode.TreeView != null)
+            {
+                parentNode.TreeView.SelectedNode = parentNode;
+            }
+        }
+
+        private static void ApplyNodeStyle(TreeNode treeNode, System.Xml.XmlNode xmlNode)
+        {
+            if (xmlNode.Attributes?.Count <= 2)
+            {
+                return;
+            }
+
+            bool isFocused = xmlNode.Attributes[2].Value == "1";
+            var fontStyle = isFocused ? FontStyle.Bold : FontStyle.Regular;
+            treeNode.NodeFont = new Font(SystemFonts.DefaultFont, fontStyle);
+        }
+
+        private static void ApplySyncNodeStyle(TreeNode treeNode, SyncDTO syncData)
+        {
+            var fontStyle = syncData.IsFocused ? FontStyle.Bold : FontStyle.Regular;
+            treeNode.NodeFont = new Font(SystemFonts.DefaultFont, fontStyle);
+        }
+
+        private static void SortChildNodesByWeight(TreeNode parentNode)
+        {
+            var sortedNodes = parentNode.Nodes
+                .Cast<TreeNode>()
+                .OrderBy(n => ((XmlNodeData)n.Tag)?.weight ?? 0)
+                .ToList();
+
+            parentNode.Nodes.Clear();
+            parentNode.Nodes.AddRange(sortedNodes.ToArray());
+        }
+
+        #endregion
     }
 }

@@ -1,87 +1,172 @@
-﻿using RicherTextBox;
-using RicherTextBoxDemo.DtO;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
-using System.Linq;
 using System.Media;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using RicherTextBoxDemo.Core;
+using RicherTextBoxDemo.DtO;
 
 namespace RicherTextBoxDemo.ArkosPadFiles.DataFiles
 {
+    /// <summary>
+    /// Handles save and load operations including cloud upload.
+    /// </summary>
     public class SaveLoad
     {
-        private TreeView treeView1;
-        public SaveLoad(TreeView treeView1) 
-        { 
-            this.treeView1=treeView1;
-        }
-        public  void saveFile(RicherTextBox.RicherTextBox richerTextBox1)
-        {
-         
-                TreeNode n = treeView1.SelectedNode;
-                if (n != null && n.Tag != null)
-                {
-                    String tag = ((XmlNodeData)n.Tag).ID;
-                    TreeItem i = Globals.data[tag];
-                    if (richerTextBox1.Text.Trim().Length > 0)
-                        i.data = richerTextBox1.Rtf;
-                    else
-                        i.data = "";
-                    Globals.data[tag] = i;
+        private readonly TreeView _treeView;
+        private readonly AppSettings _settings;
 
-                    new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename);
-                   
-                    new ArkosPadFiles.Files(treeView1).saveFiles();
-                    SystemSounds.Beep.Play();
-                
-            }
+        public SaveLoad(TreeView treeView)
+        {
+            _treeView = treeView ?? throw new ArgumentNullException(nameof(treeView));
+            _settings = AppSettings.Instance;
         }
 
-        public  void uploadToCloud()
+        /// <summary>
+        /// Saves the current node data to file.
+        /// </summary>
+        public void saveFile(RicherTextBox.RicherTextBox richerTextBox)
         {
-            if (!Globals.isCloud)
+            SaveFile(richerTextBox);
+        }
+
+        /// <summary>
+        /// Saves the current node data to file.
+        /// </summary>
+        public void SaveFile(RicherTextBox.RicherTextBox richerTextBox)
+        {
+            TreeNode selectedNode = _treeView.SelectedNode;
+            if (selectedNode?.Tag == null)
             {
-                if (MessageBox.Show(MainForm.instance, "Warning! This will delete all content saved in the cloud!\nContinue?", "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.Yes)
+                return;
+            }
+
+            var nodeData = selectedNode.Tag as XmlNodeData;
+            if (nodeData == null)
+            {
+                return;
+            }
+
+            UpdateNodeData(nodeData.ID, richerTextBox);
+            SaveToFile(richerTextBox);
+        }
+
+        /// <summary>
+        /// Uploads the current project to the cloud.
+        /// </summary>
+        public void uploadToCloud()
+        {
+            UploadToCloud();
+        }
+
+        /// <summary>
+        /// Uploads the current project to the cloud.
+        /// </summary>
+        public void UploadToCloud()
+        {
+            if (_settings.IsCloudMode)
+            {
+                ShowError(Constants.Messages.AlreadyConnectedToCloud);
+                return;
+            }
+
+            if (!ConfirmCloudUpload())
+            {
+                return;
+            }
+
+            if (!ConnectToCloud())
+            {
+                return;
+            }
+
+            PerformCloudUpload();
+        }
+
+        #region Private Helper Methods
+
+        private void UpdateNodeData(string nodeId, RicherTextBox.RicherTextBox richerTextBox)
+        {
+            if (!_settings.Data.ContainsKey(nodeId))
+            {
+                return;
+            }
+
+            TreeItem item = _settings.Data[nodeId];
+            item.Data = string.IsNullOrWhiteSpace(richerTextBox.Text)
+                ? string.Empty
+                : richerTextBox.Rtf;
+            _settings.Data[nodeId] = item;
+        }
+
+        private void SaveToFile(RicherTextBox.RicherTextBox richerTextBox)
+        {
+            var filesHandler = new Files(_treeView);
+            filesHandler.exportToXml(richerTextBox, _settings.CurrentFileName);
+            filesHandler.saveFiles();
+            
+            SystemSounds.Beep.Play();
+        }
+
+        private bool ConfirmCloudUpload()
+        {
+            var result = MessageBox.Show(
+                MainForm.instance,
+                Constants.Messages.CloudDeleteWarning,
+                "Warning",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Exclamation);
+
+            return result == DialogResult.Yes;
+        }
+
+        private bool ConnectToCloud()
+        {
+            var openFileDialog = new OpenFile(true);
+            
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+            {
+                return false;
+            }
+
+            _settings.IsCloudMode = openFileDialog.isCloud;
+
+            if (openFileDialog.isCloud)
+            {
+                _settings.CloudSession = openFileDialog.session;
+                _settings.CloudUrl = openFileDialog.url;
+            }
+
+            return _settings.IsCloudMode;
+        }
+
+        private void PerformCloudUpload()
+        {
+            Sync.Clear();
+
+            foreach (TreeNode node in _treeView.Nodes)
+            {
+                string tempFilePath = Path.Combine(_settings.TempDirectory, "..", "tmp");
+                
+                using (var writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
                 {
-                    if (!Globals.isCloud)
-                    {
-                        OpenFileDialog dlg = new OpenFileDialog();
-
-                        OpenFile f = new OpenFile(true);
-                        if (f.ShowDialog() == DialogResult.OK)
-                        {
-
-                            Globals.isCloud = f.isCloud;
-
-                            if (f.isCloud)
-                            {
-                                Globals.cloudSession = f.session;
-                                Globals.cloudURL = f.url;
-                            }
-                        }
-
-                        if (Globals.isCloud)
-                        {
-                            Sync.Clear();
-                            foreach (TreeNode node in treeView1.Nodes)
-                            {
-                                StreamWriter sr = new StreamWriter(Globals.tempDir+"\\..\\tmp",false, System.Text.Encoding.UTF8);
-                                Nodes.saveNode(node.Nodes, sr, false);
-                                sr.Close();
-                            }
-                            MainForm.instance.runMainThread();
-                        }
-                    }
+                    Nodes.saveNode(node.Nodes, writer, false);
                 }
             }
-            else
-            {
-                MessageBox.Show(MainForm.instance, "You are allready connected to the cloud.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+
+            MainForm.instance.runMainThread();
         }
+
+        private void ShowError(string message)
+        {
+            MessageBox.Show(
+                MainForm.instance,
+                message,
+                Constants.Messages.ErrorTitle,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+
+        #endregion
     }
 }

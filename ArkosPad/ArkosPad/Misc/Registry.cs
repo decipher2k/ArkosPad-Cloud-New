@@ -1,65 +1,138 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using RicherTextBoxDemo.Core;
 
 namespace RicherTextBoxDemo
 {
-    internal class Registry
+    /// <summary>
+    /// Provides access to application settings stored in the Windows Registry.
+    /// </summary>
+    internal static class Registry
     {
-        public static String getFilename()
+        /// <summary>
+        /// Gets the last opened filename from the registry.
+        /// </summary>
+        public static string getFilename()
+        {
+            return GetLastFileName();
+        }
+
+        /// <summary>
+        /// Gets the last opened filename from the registry.
+        /// </summary>
+        public static string GetLastFileName()
         {
             try
             {
-                String filename = "";
-                Microsoft.Win32.RegistryKey key;
-                key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("ArkosPad");
-                if (key != null)
+                using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Constants.RegistryKeyName))
                 {
-                    if(key.GetValue("LastFile") != null)
-                        filename = key.GetValue("LastFile").ToString();
-                    key.Close();
-                    return filename;
+                    if (key == null)
+                    {
+                        return string.Empty;
+                    }
+
+                    var value = key.GetValue(Constants.RegistryLastFileName);
+                    return value?.ToString() ?? string.Empty;
                 }
             }
-            catch (Exception ex) { }
-            return "";
-        }
-
-        public static void setHostData(String host, String username)
-        {
-            String filename = "";
-            Microsoft.Win32.RegistryKey key;
-            key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("ArkosPad",true);
-            if (key != null)
+            catch (Exception)
             {
-                key.SetValue("LastHost", host);
-                key.SetValue("LastUser", username);
-                key.Close();                
+                return string.Empty;
             }
         }
 
-        public static void getHostData(out String host, out String username)
+        /// <summary>
+        /// Saves the last used host and username to the registry.
+        /// </summary>
+        public static void setHostData(string host, string username)
         {
-            host = "";
-            username = "";
-            String filename = "";
-            Microsoft.Win32.RegistryKey key;
-            key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("ArkosPad",true);
-            if (key != null)
+            SetHostData(host, username);
+        }
+
+        /// <summary>
+        /// Saves the last used host and username to the registry.
+        /// </summary>
+        public static void SetHostData(string host, string username)
+        {
+            try
             {
-                try
+                using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Constants.RegistryKeyName, true))
                 {
-                    if(key.GetValue("LastHost")!=null)
-                        host = key.GetValue("LastHost").ToString();
-                    if(key.GetValue("LastUser")!= null)
-                        username = key.GetValue("LastUser").ToString();
-                }catch(Exception ex) { }
-                key.Close();
+                    if (key == null)
+                    {
+                        return;
+                    }
+
+                    key.SetValue(Constants.RegistryLastHostName, host);
+                    key.SetValue(Constants.RegistryLastUserName, username);
+                }
+            }
+            catch (Exception)
+            {
+                // Registry access may fail silently
             }
         }
 
+        /// <summary>
+        /// Gets the last used host and username from the registry.
+        /// </summary>
+        public static void getHostData(out string host, out string username)
+        {
+            GetHostData(out host, out username);
+        }
 
+        /// <summary>
+        /// Gets the last used host and username from the registry.
+        /// </summary>
+        public static void GetHostData(out string host, out string username)
+        {
+            host = string.Empty;
+            username = string.Empty;
+
+            try
+            {
+                using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Constants.RegistryKeyName, true))
+                {
+                    if (key == null)
+                    {
+                        return;
+                    }
+
+                    var hostValue = key.GetValue(Constants.RegistryLastHostName);
+                    var userValue = key.GetValue(Constants.RegistryLastUserName);
+
+                    if (hostValue != null)
+                    {
+                        host = hostValue.ToString();
+                    }
+
+                    if (userValue != null)
+                    {
+                        username = userValue.ToString();
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Registry access may fail silently
+            }
+        }
+
+        /// <summary>
+        /// Saves the last opened filename to the registry.
+        /// </summary>
+        public static void SetLastFileName(string fileName)
+        {
+            try
+            {
+                using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(Constants.RegistryKeyName))
+                {
+                    key?.SetValue(Constants.RegistryLastFileName, fileName);
+                }
+            }
+            catch (Exception)
+            {
+                // Registry access may fail silently
+            }
+        }
     }
 }

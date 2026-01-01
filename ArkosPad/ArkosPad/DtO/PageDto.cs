@@ -1,17 +1,41 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RicherTextBoxDemo.DtO
 {
+    /// <summary>
+    /// Data transfer object for page/content operations.
+    /// </summary>
     [Serializable]
     public class PageDto
     {
-        public string session { get; set; } = "";
-        public string url { get; set; } = "";
-        public string text { get; set; } = "";
-        public int weight { get; set; } = 1;
+        public string Session { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+        public int Weight { get; set; } = 1;
+
+        // Legacy property accessors for JSON serialization compatibility
+        public string session
+        {
+            get => Session;
+            set => Session = value;
+        }
+
+        public string url
+        {
+            get => Url;
+            set => Url = value;
+        }
+
+        public string text
+        {
+            get => Text;
+            set => Text = value;
+        }
+
+        public int weight
+        {
+            get => Weight;
+            set => Weight = value;
+        }
     }
 }

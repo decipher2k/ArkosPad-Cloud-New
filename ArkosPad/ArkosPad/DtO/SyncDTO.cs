@@ -1,19 +1,63 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RicherTextBoxDemo.DtO
 {
+    /// <summary>
+    /// Data transfer object for synchronization data.
+    /// </summary>
+    [Serializable]
     public class SyncDTO
     {
-        public DateTime lastSync = DateTime.Now;
-        public string name { get; set; } = "";
-        public string data { get; set; } = "";
-        public string ID { get; set; }
-        public int weight { get; set; }
-        public bool focus { get; set; }
-        public List<SyncDTO> children { get; set; } = new List<SyncDTO>();
+        public DateTime LastSync { get; set; } = DateTime.Now;
+        public string Name { get; set; } = string.Empty;
+        public string Data { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public int Weight { get; set; }
+        public bool IsFocused { get; set; }
+        public List<SyncDTO> Children { get; set; } = new List<SyncDTO>();
+
+        // Legacy property accessors for JSON serialization compatibility
+        public DateTime lastSync
+        {
+            get => LastSync;
+            set => LastSync = value;
+        }
+
+        public string name
+        {
+            get => Name;
+            set => Name = value;
+        }
+
+        public string data
+        {
+            get => Data;
+            set => Data = value;
+        }
+
+        public string ID
+        {
+            get => Id;
+            set => Id = value;
+        }
+
+        public int weight
+        {
+            get => Weight;
+            set => Weight = value;
+        }
+
+        public bool focus
+        {
+            get => IsFocused;
+            set => IsFocused = value;
+        }
+
+        public List<SyncDTO> children
+        {
+            get => Children;
+            set => Children = value;
+        }
     }
 }

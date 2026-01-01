@@ -1,152 +1,221 @@
-﻿using RicherTextBox;
-using RicherTextBoxDemo.ArkosPadFiles;
-using RicherTextBoxDemo.DtO;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Xml;
+using RicherTextBoxDemo.ArkosPadFiles;
+using RicherTextBoxDemo.Core;
+using RicherTextBoxDemo.DtO;
+using RicherTextBoxDemo.Services;
 
 namespace RicherTextBoxDemo.TreeControl
 {
+    /// <summary>
+    /// Manages tree view operations including loading, saving, and navigation.
+    /// </summary>
     public class TreeView
     {
-       
-        private System.Windows.Forms.TreeView treeView1;
-        
-        public TreeView(System.Windows.Forms.TreeView treeView1)
-        {            
-            this.treeView1 = treeView1;   
+        private readonly System.Windows.Forms.TreeView _treeView;
+        private readonly TreeNodeService _nodeService;
+        private readonly AppSettings _settings;
+
+        public TreeView(System.Windows.Forms.TreeView treeView)
+        {
+            _treeView = treeView ?? throw new ArgumentNullException(nameof(treeView));
+            _nodeService = new TreeNodeService();
+            _settings = AppSettings.Instance;
         }
 
-        
-        public void loadTreeData(RicherTextBox.RicherTextBox richerTextBox1)
+        /// <summary>
+        /// Saves the current tree node's data to the data dictionary.
+        /// </summary>
+        public void loadTreeData(RicherTextBox.RicherTextBox richerTextBox)
         {
-            TreeNode n = treeView1.SelectedNode;
-            if (n != null && n.Tag != null)
+            TreeNode selectedNode = _treeView.SelectedNode;
+            
+            if (selectedNode?.Tag == null)
             {
-                String tag = ((XmlNodeData)n.Tag).ID;
-                if (n.Tag != null)
-                {
-                    TreeItem i = Globals.data[tag];
-                    if (richerTextBox1.Text.Trim().Length > 0)
-                    {
-                        if (i.data != richerTextBox1.Rtf)
-                        {
-                            i.data = richerTextBox1.Rtf;
-                            if(Globals.isCloud)
-                                Sync.UpdateOrAddNode(Globals.data[((XmlNodeData)n.Tag).ID].data, Globals.data[((XmlNodeData)n.Tag).ID].weight, n);
-                        }
-                    }
-                    else
-                    {
-                        if (i.data != "")
-                        {
-                            i.data = "";
-                            if (Globals.isCloud)
-                                Sync.UpdateOrAddNode(Globals.data[((XmlNodeData)n.Tag).ID].data, Globals.data[((XmlNodeData)n.Tag).ID].weight, n);
-                        }
-                    }
-
-                    i.data = richerTextBox1.Rtf;
-                    Globals.data[tag] = i;
-
-                    if (Globals._filename != "")
-                    {
-                        new ArkosPadFiles.Files(treeView1).exportToXml(richerTextBox1,Globals._filename);
-                    }
-                }
+                return;
             }
+
+            var nodeData = selectedNode.Tag as XmlNodeData;
+            if (nodeData == null)
+            {
+                return;
+            }
+
+            string nodeId = nodeData.ID;
+            if (!_settings.Data.ContainsKey(nodeId))
+            {
+                return;
+            }
+
+            TreeItem item = _settings.Data[nodeId];
+            string newContent = GetRtfContent(richerTextBox);
+            
+            if (item.Data != newContent)
+            {
+                item.Data = newContent;
+                SyncNodeIfCloud(selectedNode);
+            }
+
+            _settings.Data[nodeId] = item;
+            SaveIfFileExists(richerTextBox);
         }
 
-        public void populateTreeview(RicherTextBox.RicherTextBox richerTextBox1, System.Windows.Forms.ListView listView1, String filename = "", String idInit="")
+        /// <summary>
+        /// Populates the tree view from a file or cloud source.
+        /// </summary>
+        public void populateTreeview(RicherTextBox.RicherTextBox richerTextBox, 
+            System.Windows.Forms.ListView listView, 
+            string filename = "", 
+            string activeNodeId = "")
         {
-            richerTextBox1.File = filename;
+            richerTextBox.File = filename;
 
-            OpenFileDialog dlg = new OpenFileDialog();
-
-            OpenFile f = new OpenFile();
-            if (filename != "" || f.ShowDialog() == DialogResult.OK)
+            var openFileDialog = new OpenFile();
+            
+            if (!string.IsNullOrEmpty(filename) || openFileDialog.ShowDialog() == DialogResult.OK)
             {
+                _settings.IsCloudMode = openFileDialog.isCloud;
 
-                Globals.isCloud = f.isCloud;
-
-
-                if (f.isCloud)
+                if (openFileDialog.isCloud)
                 {
-                    Globals.cloudSession = f.session;
-                    Globals.cloudURL = f.url;
-                    Sync.lastSync = DateTime.Now;
-                    MainForm.instance.runMainThread();
+                    InitializeCloudMode(openFileDialog);
                 }
                 else
                 {
-                    treeView1.Nodes.Clear();
-                    bool mdlg = false;
-                    if (filename == "")
-                    {
-                        mdlg = true;
-                        MainForm.closing = true;
-                        filename = f.file;
-                        Globals._zipFileName = filename;
-                        if (!Globals.isCloud)
-                            new ArkosPadFiles.Files(treeView1).loadFiles(filename);                        
-                        filename = new ArkosPadFiles.Files(treeView1).getXmlFromFilename(filename);
-                        richerTextBox1.File = filename;
-                        Globals._filename = filename;
-                    }
-
-                    try
-                    {
-                        if (!System.IO.File.Exists(Globals.tempDir + "\\data.dat") && mdlg)
-                        {
-                            MessageBox.Show(MainForm.instance, ".dat file not found.", "Error");
-                        }
-                        else
-                        {
-                            Globals.data = DataStorage.DeSerializeNow(Globals.tempDir + "\\data.dat");
-                            XmlDocument xDoc = new XmlDocument();
-                            xDoc.Load(filename);
-                            treeView1.Nodes.Clear();
-                            treeView1.Nodes.Add(new
-                              TreeNode(xDoc.DocumentElement.Name));
-                            TreeNode tNode = new TreeNode();
-                            tNode = (TreeNode)treeView1.Nodes[0];
-                            new Nodes().addTreeNode(xDoc.DocumentElement, tNode, Globals.data, idInit);
-                            treeView1.ExpandAll();
-                            listView1.Clear();
-                            Globals._filename = filename;
-                            MainForm.instance.setFormCaption();
-
-                            foreach (TreeItem itm in Globals.data.Values)
-                            {
-                                if (itm.weight > Globals._maxWeight)
-                                    Globals._maxWeight = itm.weight;
-                            }
-                        }
-                    }
-                    catch (XmlException xExc)
-                    {
-                        MessageBox.Show(xExc.Message);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.Message);
-                    }
+                    LoadLocalFile(richerTextBox, listView, filename, openFileDialog, activeNodeId);
                 }
             }
         }
 
+        /// <summary>
+        /// Removes a node and all its children from the tree.
+        /// </summary>
         public void removeNode(TreeNode node)
         {
-            while (node.Nodes.Count > 0)
-                removeNode(node.Nodes[0]);
-            Globals.data.Remove(((XmlNodeData)node.Tag).ID);
-            node.Remove();
+            _nodeService.RemoveNode(node);
+        }
 
+        private void InitializeCloudMode(OpenFile openFileDialog)
+        {
+            _settings.CloudSession = openFileDialog.session;
+            _settings.CloudUrl = openFileDialog.url;
+            Sync.lastSync = DateTime.Now;
+            MainForm.instance.runMainThread();
+        }
+
+        private void LoadLocalFile(RicherTextBox.RicherTextBox richerTextBox, 
+            System.Windows.Forms.ListView listView, 
+            string filename, 
+            OpenFile openFileDialog,
+            string activeNodeId)
+        {
+            _treeView.Nodes.Clear();
+            bool isDialogOpened = string.IsNullOrEmpty(filename);
+
+            if (isDialogOpened)
+            {
+                MainForm.closing = true;
+                filename = openFileDialog.file;
+                _settings.ZipFileName = filename;
+
+                if (!_settings.IsCloudMode)
+                {
+                    new Files(_treeView).loadFiles(filename);
+                }
+
+                filename = new Files(_treeView).getXmlFromFilename(filename);
+                richerTextBox.File = filename;
+                _settings.CurrentFileName = filename;
+            }
+
+            try
+            {
+                LoadTreeFromFile(listView, filename, isDialogOpened, activeNodeId);
+            }
+            catch (XmlException ex)
+            {
+                MessageBox.Show(ex.Message, Constants.Messages.ErrorTitle);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, Constants.Messages.ErrorTitle);
+            }
+        }
+
+        private void LoadTreeFromFile(System.Windows.Forms.ListView listView, 
+            string filename, 
+            bool showMissingFileError,
+            string activeNodeId)
+        {
+            string datFilePath = System.IO.Path.Combine(_settings.TempDirectory, Constants.DataBinaryFileName);
+
+            if (!System.IO.File.Exists(datFilePath) && showMissingFileError)
+            {
+                MessageBox.Show(MainForm.instance, Constants.Messages.FileNotFound, Constants.Messages.ErrorTitle);
+                return;
+            }
+
+            _settings.Data = DataStorage.DeSerializeNow(datFilePath);
+
+            var xmlDoc = new XmlDocument();
+            xmlDoc.Load(filename);
+
+            _treeView.Nodes.Clear();
+            _treeView.Nodes.Add(new TreeNode(xmlDoc.DocumentElement.Name));
+
+            TreeNode rootNode = _treeView.Nodes[0];
+            new Nodes().addTreeNode(xmlDoc.DocumentElement, rootNode, _settings.Data, activeNodeId);
+
+            _treeView.ExpandAll();
+            listView.Clear();
+
+            _settings.CurrentFileName = filename;
+            MainForm.instance.setFormCaption();
+
+            UpdateMaxWeight();
+        }
+
+        private void UpdateMaxWeight()
+        {
+            foreach (TreeItem item in _settings.Data.Values)
+            {
+                if (item.Weight > _settings.MaxWeight)
+                {
+                    _settings.MaxWeight = item.Weight;
+                }
+            }
+        }
+
+        private string GetRtfContent(RicherTextBox.RicherTextBox richerTextBox)
+        {
+            return string.IsNullOrWhiteSpace(richerTextBox.Text) 
+                ? string.Empty 
+                : richerTextBox.Rtf;
+        }
+
+        private void SyncNodeIfCloud(TreeNode node)
+        {
+            if (!_settings.IsCloudMode)
+            {
+                return;
+            }
+
+            var nodeData = node?.Tag as XmlNodeData;
+            if (nodeData != null && _settings.Data.ContainsKey(nodeData.ID))
+            {
+                var item = _settings.Data[nodeData.ID];
+                Sync.UpdateOrAddNode(item.Data, item.Weight, node);
+            }
+        }
+
+        private void SaveIfFileExists(RicherTextBox.RicherTextBox richerTextBox)
+        {
+            if (!string.IsNullOrEmpty(_settings.CurrentFileName))
+            {
+                new Files(_treeView).exportToXml(richerTextBox, _settings.CurrentFileName);
+            }
         }
     }
 }

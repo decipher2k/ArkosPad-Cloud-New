@@ -1,25 +1,68 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RicherTextBoxDemo.DtO
 {
+    /// <summary>
+    /// Data transfer object for file metadata.
+    /// </summary>
     public class FileDto
     {
-        public class fileCapsule
+        /// <summary>
+        /// Wrapper class for file information from cloud API.
+        /// </summary>
+        public class FileCapsule
         {
-            public Files file;
+            public FileInfo File { get; set; }
+
+            // Legacy property for JSON compatibility
+            public FileInfo file
+            {
+                get => File;
+                set => File = value;
+            }
         }
 
-        public class Files
+        /// <summary>
+        /// File information details.
+        /// </summary>
+        public class FileInfo
         {
-            public int id { get; set; }
-            public int idNode { get; set; }
-            public string fileName { get; set; }
-            public string encName { get; set; }
+            public int Id { get; set; }
+            public int NodeId { get; set; }
+            public string FileName { get; set; } = string.Empty;
+            public string EncryptedName { get; set; } = string.Empty;
 
+            // Legacy property accessors for JSON compatibility
+            public int id
+            {
+                get => Id;
+                set => Id = value;
+            }
+
+            public int idNode
+            {
+                get => NodeId;
+                set => NodeId = value;
+            }
+
+            public string fileName
+            {
+                get => FileName;
+                set => FileName = value;
+            }
+
+            public string encName
+            {
+                get => EncryptedName;
+                set => EncryptedName = value;
+            }
         }
+
+        // Legacy nested class for backward compatibility
+        [Obsolete("Use FileCapsule instead")]
+        public class fileCapsule : FileCapsule { }
+
+        [Obsolete("Use FileInfo instead")]
+        public class Files : FileInfo { }
     }
 }
